@@ -34,6 +34,9 @@
 - `wizard_paywall_viewed` and `wizard_paywall_cta_click` for subscription funnel visibility.
 - `subscription_confirm_start` / `subscription_confirm_success` / `subscription_confirm_error` when handling the Stripe return.
 - `profile_loaded`, `profile_load_unauthenticated`, `profile_load_not_configured`, and `profile_load_error` to track Supabase readiness.
+See `docs/plausible-setup-checklist.md` for the remaining production setup steps and Plausible dashboard configuration tasks.
+
+Stage 5 CSP hardening quick-start: `docs/security/csp-snippets.md`.
 
 ## Tech & Implementation Snapshot
 - Front end: Next.js 15 App Router with TypeScript and Tailwind.
