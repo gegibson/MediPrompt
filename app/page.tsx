@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
+import { trackEvent } from "@/lib/analytics/track";
 
 const PREVIEW_STORAGE_KEY = "mp-landing-preview-count";
 const PREVIEW_LIMIT = 2;
@@ -43,6 +44,11 @@ export default function LandingPage() {
   );
   const { user, supabase, openAuthModal, loading } = useAuthContext();
 
+  const handleAuthModalOpen = () => {
+    trackEvent("auth_modal_open", { source: "landing-nav" });
+    openAuthModal();
+  };
+
   useEffect(() => {
     if (typeof window === "undefined") {
       return;
@@ -78,6 +84,9 @@ export default function LandingPage() {
     event.preventDefault();
 
     if (!canPreview || !topic.trim()) {
+      if (!canPreview) {
+        trackEvent("landing_preview_limit_hit");
+      }
       return;
     }
 
@@ -93,6 +102,12 @@ export default function LandingPage() {
     } catch (error) {
       console.error("Unable to persist preview count", error);
     }
+
+    trackEvent("landing_preview_generated", {
+      previews_used: nextCount,
+      previews_remaining: Math.max(PREVIEW_LIMIT - nextCount, 0),
+      topic_length: topic.trim().length,
+    });
   };
 
   const handleCopy = async () => {
@@ -104,6 +119,7 @@ export default function LandingPage() {
       await navigator.clipboard.writeText(previewPrompt);
       setCopyStatus("success");
       window.setTimeout(() => setCopyStatus("idle"), 2400);
+      trackEvent("landing_prompt_copied");
     } catch (error) {
       console.error("Copy failed", error);
       setCopyStatus("error");
@@ -118,6 +134,7 @@ export default function LandingPage() {
 
     try {
       await supabase.auth.signOut();
+      trackEvent("auth_signed_out", { source: "landing" });
     } catch (error) {
       console.error("Sign out failed", error);
     }
@@ -150,7 +167,7 @@ export default function LandingPage() {
             ) : (
               <button
                 type="button"
-                onClick={openAuthModal}
+                onClick={handleAuthModalOpen}
                 className="rounded-full border border-emerald-400 px-5 py-2 text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                 disabled={loading}
               >

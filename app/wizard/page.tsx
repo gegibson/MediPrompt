@@ -1,10 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
+import { trackEvent } from "@/lib/analytics/track";
 
 type FormRole = "patient" | "caregiver";
 type FormGoal = "learn-basics" | "medications" | "insurance";
@@ -94,6 +95,7 @@ export default function WizardPage() {
   const [profileError, setProfileError] = useState<string>("");
   const [isConfirmingSubscription, setIsConfirmingSubscription] =
     useState<boolean>(false);
+  const paywallTrackedRef = useRef(false);
 
   const previewStorageKey = useMemo(
     () => getPreviewStorageKey(user?.id),
@@ -150,6 +152,7 @@ export default function WizardPage() {
 
       if (response.status === 401) {
         setIsSubscriber(false);
+        trackEvent("profile_load_unauthenticated");
         return;
       }
 
@@ -158,6 +161,7 @@ export default function WizardPage() {
           "Supabase backend is not configured yet. Add your environment keys to enable auth.",
         );
         setIsSubscriber(false);
+        trackEvent("profile_load_not_configured");
         return;
       }
 
@@ -166,13 +170,18 @@ export default function WizardPage() {
       }
 
       const data = (await response.json()) as MeResponse;
-      setIsSubscriber(Boolean(data?.is_subscriber));
+      const subscriber = Boolean(data?.is_subscriber);
+      setIsSubscriber(subscriber);
+      trackEvent("profile_loaded", {
+        is_subscriber: subscriber,
+      });
     } catch (error) {
       console.error("Unable to load subscription status", error);
       setProfileError(
         "Unable to load subscription status. Refresh the page or try again later.",
       );
       setIsSubscriber(false);
+      trackEvent("profile_load_error");
     } finally {
       setProfileLoading(false);
     }
@@ -202,6 +211,7 @@ export default function WizardPage() {
     }
 
     setIsConfirmingSubscription(true);
+    trackEvent("subscription_confirm_start");
 
     void (async () => {
       try {
@@ -215,11 +225,15 @@ export default function WizardPage() {
         }
 
         await loadProfile();
+        trackEvent("subscription_confirm_success");
       } catch (error) {
         console.error("Subscription confirmation failed", error);
         setProfileError(
           "We couldn’t confirm the subscription. If you completed checkout, contact support and we’ll resolve it.",
         );
+        trackEvent("subscription_confirm_error", {
+          error_type: error instanceof Error ? error.name : "unknown",
+        });
       } finally {
         setIsConfirmingSubscription(false);
         router.replace("/wizard");
@@ -287,15 +301,24 @@ export default function WizardPage() {
     return "Generate prompt";
   }, [authLoading, freePreviewUsed, isConfirmingSubscription, isSubscriber, profileLoading, user]);
 
+  const triggerAuthModal = useCallback(
+    (source: string) => {
+      trackEvent("auth_modal_open", { source });
+      openAuthModal();
+    },
+    [openAuthModal],
+  );
+
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
     if (!user) {
-      openAuthModal();
+      triggerAuthModal("wizard-submit");
       return;
     }
 
     if (!isSubscriber && freePreviewUsed) {
+      trackEvent("wizard_prompt_blocked", { reason: "paywall" });
       return;
     }
 
@@ -306,7 +329,15 @@ export default function WizardPage() {
     if (!isSubscriber && !freePreviewUsed) {
       setFreePreviewUsed(true);
       persistPreviewUsage(true);
+      trackEvent("wizard_free_preview_consumed");
     }
+
+    trackEvent("wizard_prompt_generated", {
+      is_subscriber: isSubscriber,
+      role: formState.role,
+      goal: formState.goal,
+      context_length: formState.context.trim().length,
+    });
   };
 
   const handleCopy = async () => {
@@ -318,6 +349,9 @@ export default function WizardPage() {
       await navigator.clipboard.writeText(wizardPrompt);
       setCopyStatus("success");
       window.setTimeout(() => setCopyStatus("idle"), 2400);
+      trackEvent("wizard_prompt_copied", {
+        is_subscriber: isSubscriber,
+      });
     } catch (error) {
       console.error("Copy failed", error);
       setCopyStatus("error");
@@ -335,6 +369,7 @@ export default function WizardPage() {
       setFormState(defaultFormState);
       setWizardPrompt("");
       persistPreviewUsage(false);
+      trackEvent("auth_signed_out", { source: "wizard" });
     } catch (error) {
       console.error("Sign out failed", error);
     }
@@ -345,6 +380,16 @@ export default function WizardPage() {
   const paymentLinkHref = isPaymentLinkConfigured ? paymentLink! : "#";
   const showPaywall = Boolean(user) && !isSubscriber;
   const showFreePreviewNotice = Boolean(user) && !isSubscriber && freePreviewUsed;
+
+  useEffect(() => {
+    if (showPaywall && !paywallTrackedRef.current) {
+      trackEvent("wizard_paywall_viewed", {
+        free_preview_used: freePreviewUsed,
+        has_payment_link: isPaymentLinkConfigured,
+      });
+      paywallTrackedRef.current = true;
+    }
+  }, [freePreviewUsed, isPaymentLinkConfigured, showPaywall]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-sky-50 text-slate-900">
@@ -379,7 +424,7 @@ export default function WizardPage() {
             ) : (
               <button
                 type="button"
-                onClick={openAuthModal}
+                onClick={() => triggerAuthModal("wizard-header")}
                 className="rounded-full border border-emerald-400 px-5 py-2 text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                 disabled={authLoading}
               >
@@ -415,7 +460,7 @@ export default function WizardPage() {
               <button
                 id="mp-open-auth"
                 type="button"
-                onClick={openAuthModal}
+                onClick={() => triggerAuthModal("wizard-gate")}
                 className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
               >
                 Open login / signup
@@ -454,6 +499,11 @@ export default function WizardPage() {
                     ? "bg-emerald-600 hover:bg-emerald-700"
                     : "bg-slate-300 text-slate-600"
                 }`}
+                onClick={() =>
+                  trackEvent("wizard_paywall_cta_click", {
+                    has_payment_link: isPaymentLinkConfigured,
+                  })
+                }
               >
                 {isPaymentLinkConfigured ? "Go to checkout" : "Add payment link"}
               </Link>

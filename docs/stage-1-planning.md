@@ -27,11 +27,13 @@
 - Local two-preview cap enforced via `mp-landing-preview-count`; no server-side prompt tracking.
 
 ## Analytics Baseline (Plausible)
-- `landing_prompt_submit`
-- `landing_paywall_view`
-- `wizard_prompt_submit`
-- `subscribe_click`
-- `subscribe_success`
+- `auth_modal_open` with `source` props from landing nav, wizard header, etc.
+- `auth_modal_success` / `auth_modal_error` capturing `mode` outcomes for sign in/up/reset.
+- `landing_preview_generated`, `landing_preview_limit_hit`, and `landing_prompt_copied` for the public demo.
+- `wizard_prompt_generated`, `wizard_prompt_blocked`, `wizard_free_preview_consumed`, and `wizard_prompt_copied` to monitor gated usage.
+- `wizard_paywall_viewed` and `wizard_paywall_cta_click` for subscription funnel visibility.
+- `subscription_confirm_start` / `subscription_confirm_success` / `subscription_confirm_error` when handling the Stripe return.
+- `profile_loaded`, `profile_load_unauthenticated`, `profile_load_not_configured`, and `profile_load_error` to track Supabase readiness.
 
 ## Tech & Implementation Snapshot
 - Front end: Next.js 15 App Router with TypeScript and Tailwind.

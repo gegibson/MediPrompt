@@ -10,9 +10,13 @@ NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=service-role-key-for-admin-updates
 NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/test_example
+NEXT_PUBLIC_PLAUSIBLE_DOMAIN=mediprompt.example
+# NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC=https://plausible.io/js/script.js
 ```
 
 The `SUPABASE_SERVICE_ROLE_KEY` is only read on the server when confirming Stripe subscriptions. The Stripe payment link is optional at this stage; set it once you have a test-mode checkout ready.
+
+Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` to enable analytics in production. Leave it empty in local development to skip loading the script, or provide `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` if you host Plausible on a custom domain.
 
 ## 2. Minimal Schema (HIPAA-safe)
 Run this SQL against your Supabase project to create the table that tracks subscription state without storing prompt content.
