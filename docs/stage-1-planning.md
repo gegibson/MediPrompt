@@ -12,7 +12,7 @@
 
 ## Monetization & Pricing
 - Offer: "Mediprompt - Unlimited Prompt Builder (Monthly)" Stripe subscription at $9/month.
-- Flow: Landing preview (2 free demos) -> Wizard sign up -> Stripe Payment Link redirect to `/wizard?paid=1`.
+- Flow: Landing preview (2 free demos) -> Wizard sign up -> Server-created Stripe Checkout redirect to `/wizard?checkout=success&session_id={CHECKOUT_SESSION_ID}`.
 - Paywall promise: unlimited prompts, cancel any time, no PHI storage.
 
 ## Compliance & Data Posture
@@ -27,16 +27,21 @@
 - Local two-preview cap enforced via `mp-landing-preview-count`; no server-side prompt tracking.
 
 ## Analytics Baseline (Plausible)
-- `landing_prompt_submit`
-- `landing_paywall_view`
-- `wizard_prompt_submit`
-- `subscribe_click`
-- `subscribe_success`
+- `auth_modal_open` with `source` props from landing nav, wizard header, etc.
+- `auth_modal_success` / `auth_modal_error` capturing `mode` outcomes for sign in/up/reset.
+- `landing_preview_generated`, `landing_preview_limit_hit`, and `landing_prompt_copied` for the public demo.
+- `wizard_prompt_generated`, `wizard_prompt_blocked`, `wizard_free_preview_consumed`, and `wizard_prompt_copied` to monitor gated usage.
+- `wizard_paywall_viewed` and `wizard_paywall_cta_click` for subscription funnel visibility.
+- `subscription_confirm_start` / `subscription_confirm_success` / `subscription_confirm_error` when handling the Stripe return.
+- `profile_loaded`, `profile_load_unauthenticated`, `profile_load_not_configured`, and `profile_load_error` to track Supabase readiness.
+See `docs/plausible-setup-checklist.md` for the remaining production setup steps and Plausible dashboard configuration tasks.
+
+Stage 5 CSP hardening quick-start: `docs/security/csp-snippets.md`.
 
 ## Tech & Implementation Snapshot
 - Front end: Next.js 15 App Router with TypeScript and Tailwind.
 - Auth & data: Supabase (users table with `is_subscriber`, `subscribed_at`).
-- Payments: Stripe Payment Link redirecting to `/wizard?paid=1`.
+- Payments: Stripe Checkout session redirecting to `/wizard?checkout=success&session_id={CHECKOUT_SESSION_ID}`.
 - Naming: prefix IDs and localStorage entries with `mp-` to avoid collisions.
 
 ---
@@ -49,7 +54,7 @@
   - Legal footer links: `/privacy`, `/terms`, `/disclaimer`.
 - `/wizard`
   - Auth-gated; requires Supabase login after first free preview.
-  - Checks `GET /me` for `is_subscriber` on load; if `?paid=1`, call `POST /subscribe/confirm` and refresh state.
+  - Checks `GET /me` for `is_subscriber` on load; if `?checkout=success&session_id=...`, call `POST /subscribe/confirm` and refresh state before clearing the query params.
   - Shows paywall card and disables submit when `is_subscriber` is false.
   - Includes compliance reminder, structured form, result card with copy button, and Stripe CTA.
 
@@ -85,7 +90,7 @@
 # MVP Success Criteria
 - Landing page delivers instant preview value, includes PHI avoidance copy, and reliably routes to `/wizard`.
 - Wizard enforces: login required after first free preview, subscribers only can submit prompts, and `?paid=1` unlocks the account immediately.
-- Stripe Payment Link exists in test mode with redirect to `/wizard?paid=1`.
+- Stripe Checkout session exists in test mode with redirect to `/wizard?checkout=success&session_id={CHECKOUT_SESSION_ID}`.
 - Supabase project stores only auth + subscription metadata; no prompt text saved.
 - Analytics events captured without user-provided text.
 - Compliance messaging (educational only, no PHI) present on hero, helper copy, paywall, and footer.

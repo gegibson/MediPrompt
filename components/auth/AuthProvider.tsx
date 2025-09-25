@@ -15,6 +15,7 @@ import {
   type SupabaseBrowserClient,
 } from "@/lib/supabase/browser";
 import { isBrowserSupabaseConfigured } from "@/lib/supabase/config";
+import { trackEvent } from "@/lib/analytics/track";
 
 type AuthContextValue = {
   supabase: SupabaseBrowserClient | null;
@@ -60,6 +61,7 @@ function AuthModal({
   }, [supabase]);
 
   const switchMode = (nextMode: typeof mode) => {
+    trackEvent("auth_modal_mode_change", { mode: nextMode });
     setMode(nextMode);
     setEmail("");
     setPassword("");
@@ -73,8 +75,9 @@ function AuthModal({
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     setStatus("loading");
-    setMessage("");
-    setSupabaseError("");
+   setMessage("");
+   setSupabaseError("");
+    trackEvent("auth_modal_submit", { mode });
 
     const trimmedEmail = email.trim();
     const trimmedPassword = password.trim();
@@ -82,6 +85,7 @@ function AuthModal({
     if (!supabase) {
       setStatus("error");
       setSupabaseError("Supabase configuration missing. Add your environment keys to enable authentication.");
+      trackEvent("auth_modal_blocked", { reason: "missing_supabase_config" });
       return;
     }
 
@@ -97,6 +101,10 @@ function AuthModal({
         }
 
         await persistSession(data.session);
+        trackEvent("auth_modal_success", {
+          mode: "sign-in",
+          has_session: Boolean(data.session),
+        });
         setStatus("success");
         setMessage("Signed in successfully.");
         window.setTimeout(onClose, 600);
@@ -123,6 +131,10 @@ function AuthModal({
         }
 
         await persistSession(data.session ?? null);
+        trackEvent("auth_modal_success", {
+          mode: "sign-up",
+          has_session: Boolean(data.session),
+        });
         setStatus("success");
         setMessage(
           data.session
@@ -143,12 +155,17 @@ function AuthModal({
 
       setStatus("success");
       setMessage("Reset instructions sent to your email.");
+      trackEvent("auth_modal_success", { mode: "reset" });
     } catch (error) {
       console.error("Auth flow error", error);
       setStatus("error");
       setMessage(
         error instanceof Error ? error.message : "Unable to process request.",
       );
+      trackEvent("auth_modal_error", {
+        mode,
+        error_type: error instanceof Error ? error.name : "unknown",
+      });
     }
   };
 

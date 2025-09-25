@@ -9,10 +9,20 @@ Copy `.env.example` to `.env.local` inside `web/` and populate the values from y
 NEXT_PUBLIC_SUPABASE_URL=your-project-url
 NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=service-role-key-for-admin-updates
-NEXT_PUBLIC_STRIPE_PAYMENT_LINK=https://buy.stripe.com/test_example
+
+STRIPE_SECRET_KEY=sk_test_example
+STRIPE_PRICE_ID=price_123
+STRIPE_WEBHOOK_SECRET=whsec_123
+# STRIPE_CHECKOUT_SUCCESS_URL=https://localhost:3000/wizard?checkout=success
+# STRIPE_CHECKOUT_CANCEL_URL=https://localhost:3000/wizard?checkout=cancelled
+
+NEXT_PUBLIC_PLAUSIBLE_DOMAIN=mediprompt.example
+# NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC=https://plausible.io/js/script.js
 ```
 
-The `SUPABASE_SERVICE_ROLE_KEY` is only read on the server when confirming Stripe subscriptions. The Stripe payment link is optional at this stage; set it once you have a test-mode checkout ready.
+The `SUPABASE_SERVICE_ROLE_KEY` powers subscription mutations in both the confirmation route and the Stripe webhook handler. Stripe keys unlock the server-generated Checkout session (`STRIPE_SECRET_KEY` + `STRIPE_PRICE_ID`) and secure webhook verification (`STRIPE_WEBHOOK_SECRET`).
+
+Set `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` to enable analytics in production. Leave it empty in local development to skip loading the script, or provide `NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC` if you host Plausible on a custom domain.
 
 ## 2. Minimal Schema (HIPAA-safe)
 Run this SQL against your Supabase project to create the table that tracks subscription state without storing prompt content.
@@ -39,12 +49,15 @@ The service role policy keeps insert/update access locked to the server-side rou
 
 ## 3. API Contract
 - `GET /api/me` — expects a Supabase session cookie. Returns `{ id, email, is_subscriber }` or `401` if unauthenticated.
-- `POST /api/subscribe/confirm` — requires both a valid Supabase session and the service role key. Sets `is_subscriber=true` and `subscribed_at=now()`.
+- `POST /api/stripe/create-checkout-session` — enforces Supabase auth, creates a Stripe Checkout session for the configured price, and returns `{ url, sessionId }`.
+- `POST /api/subscribe/confirm` — accepts `{ sessionId }`, verifies the Checkout session with Stripe, and persists the subscription in Supabase. Rejects mismatched users or prices.
+- `POST /api/stripe/webhook` — receives Stripe events (`checkout.session.completed`, `customer.subscription.updated`, `customer.subscription.deleted`) and keeps the Supabase profile in sync even if the browser never returns.
 
-Both routes return `501` when Supabase environment variables are missing so that local development can proceed even before provisioning the backend.
+All routes return `501` when required environment variables are missing so local development can proceed before wiring real services.
 
 ## 4. Next Steps
-- Stage 3 will wire Supabase Auth (sign up, login, reset) into the Wizard experience.
-- Stripe checkout should redirect to `/wizard?paid=1`; on load the front-end will call `POST /api/subscribe/confirm` before refreshing `GET /api/me`.
+- Stage 3 wires Supabase Auth (sign up, login, reset) into the Wizard experience.
+- Point the Stripe Checkout success URL to `/wizard?checkout=success` so the client can call `POST /api/subscribe/confirm` with the returned `session_id`.
+- Register the Stripe webhook endpoint (`/api/stripe/webhook`) with `checkout.session.completed`, `customer.subscription.updated`, and `customer.subscription.deleted` events to keep subscription state durable.
 
 No prompt content is persisted or transmitted to Supabase in this workflow, satisfying the HIPAA-safe posture defined in the roadmap.
