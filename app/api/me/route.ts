@@ -5,6 +5,12 @@ import {
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
 
+const SETUP_ERROR_CODES = new Set([
+  "42P01", // relation does not exist
+  "PGRST301", // RLS policy missing
+  "PGRST302", // RLS policy blocks access
+]);
+
 export const dynamic = "force-dynamic";
 
 export async function GET() {
@@ -40,6 +46,23 @@ export async function GET() {
     .maybeSingle();
 
   if (profileError && profileError.code !== "PGRST116") {
+    console.error("Supabase profile lookup failed", {
+      code: profileError.code,
+      message: profileError.message,
+      details: profileError.details,
+      hint: profileError.hint,
+    });
+
+    if (profileError.code && SETUP_ERROR_CODES.has(profileError.code)) {
+      return NextResponse.json(
+        {
+          error: "Supabase profile table not ready",
+          hint: "Create the users table and RLS policies from docs/stage-2-backend.md before loading profiles.",
+        },
+        { status: 501 },
+      );
+    }
+
     return NextResponse.json(
       { error: "Unable to load subscription state" },
       { status: 500 },
