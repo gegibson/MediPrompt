@@ -95,6 +95,7 @@ export default function WizardPage() {
   const [profileError, setProfileError] = useState<string>("");
   const [isConfirmingSubscription, setIsConfirmingSubscription] =
     useState<boolean>(false);
+  const [isCreatingCheckout, setIsCreatingCheckout] = useState<boolean>(false);
   const paywallTrackedRef = useRef(false);
 
   const previewStorageKey = useMemo(
@@ -203,10 +204,11 @@ export default function WizardPage() {
     }
   }, [isSubscriber, persistPreviewUsage]);
 
-  const paidFlag = searchParams.get("paid");
+  const checkoutStatus = searchParams.get("checkout");
+  const sessionIdFromParams = searchParams.get("session_id");
 
   useEffect(() => {
-    if (!user || paidFlag !== "1") {
+    if (!user || checkoutStatus !== "success" || !sessionIdFromParams) {
       return;
     }
 
@@ -218,7 +220,19 @@ export default function WizardPage() {
         const response = await fetch("/api/subscribe/confirm", {
           method: "POST",
           credentials: "include",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ sessionId: sessionIdFromParams }),
         });
+
+        if (response.status === 501) {
+          setProfileError(
+            "Stripe backend is not configured yet. Add your Stripe keys to enable checkout.",
+          );
+          trackEvent("subscription_confirm_not_configured");
+          return;
+        }
 
         if (!response.ok) {
           throw new Error(`Unable to confirm subscription: ${response.status}`);
@@ -229,7 +243,7 @@ export default function WizardPage() {
       } catch (error) {
         console.error("Subscription confirmation failed", error);
         setProfileError(
-          "We couldn’t confirm the subscription. If you completed checkout, contact support and we’ll resolve it.",
+          "We couldn't confirm the subscription. If you completed checkout, contact support and we'll resolve it.",
         );
         trackEvent("subscription_confirm_error", {
           error_type: error instanceof Error ? error.name : "unknown",
@@ -239,7 +253,29 @@ export default function WizardPage() {
         router.replace("/wizard");
       }
     })();
-  }, [loadProfile, paidFlag, router, user]);
+  }, [checkoutStatus, loadProfile, router, sessionIdFromParams, user]);
+
+  useEffect(() => {
+    if (checkoutStatus !== "cancelled") {
+      return;
+    }
+
+    trackEvent("subscription_checkout_cancelled");
+    setProfileError("Checkout was cancelled. You can retry when you're ready.");
+    router.replace("/wizard");
+  }, [checkoutStatus, router]);
+
+  useEffect(() => {
+    if (!user || checkoutStatus !== "success" || sessionIdFromParams) {
+      return;
+    }
+
+    trackEvent("subscription_confirm_missing_session");
+    setProfileError(
+      "We couldn't verify the checkout session. If you were charged, contact support and we'll resolve it.",
+    );
+    router.replace("/wizard");
+  }, [checkoutStatus, router, sessionIdFromParams, user]);
 
   const handleFieldChange = useCallback(
     <Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
@@ -261,7 +297,7 @@ export default function WizardPage() {
       return false;
     }
 
-    if (authLoading || profileLoading || isConfirmingSubscription) {
+    if (authLoading || profileLoading || isConfirmingSubscription || isCreatingCheckout) {
       return false;
     }
 
@@ -271,6 +307,7 @@ export default function WizardPage() {
     formState.context,
     formState.topic,
     freePreviewUsed,
+    isCreatingCheckout,
     isConfirmingSubscription,
     isSubscriber,
     profileLoading,
@@ -286,6 +323,10 @@ export default function WizardPage() {
       return "Unlocking subscription...";
     }
 
+    if (isCreatingCheckout) {
+      return "Opening Stripe...";
+    }
+
     if (!user) {
       return "Sign in to continue";
     }
@@ -299,7 +340,15 @@ export default function WizardPage() {
     }
 
     return "Generate prompt";
-  }, [authLoading, freePreviewUsed, isConfirmingSubscription, isSubscriber, profileLoading, user]);
+  }, [
+    authLoading,
+    freePreviewUsed,
+    isCreatingCheckout,
+    isConfirmingSubscription,
+    isSubscriber,
+    profileLoading,
+    user,
+  ]);
 
   const triggerAuthModal = useCallback(
     (source: string) => {
@@ -375,9 +424,75 @@ export default function WizardPage() {
     }
   };
 
-  const paymentLink = process.env.NEXT_PUBLIC_STRIPE_PAYMENT_LINK;
-  const isPaymentLinkConfigured = Boolean(paymentLink);
-  const paymentLinkHref = isPaymentLinkConfigured ? paymentLink! : "#";
+  const handleStartCheckout = async () => {
+    if (isCreatingCheckout) {
+      return;
+    }
+
+    if (!user) {
+      triggerAuthModal("wizard-paywall");
+      return;
+    }
+
+    setIsCreatingCheckout(true);
+    setProfileError("");
+    trackEvent("wizard_checkout_session_start");
+
+    try {
+      const response = await fetch("/api/stripe/create-checkout-session", {
+        method: "POST",
+        credentials: "include",
+      });
+
+      if (response.status === 501) {
+        setProfileError(
+          "Stripe is not configured yet. Add your Stripe keys to enable checkout.",
+        );
+        trackEvent("wizard_checkout_session_not_configured");
+        return;
+      }
+
+      if (!response.ok) {
+        let serverMessage = "";
+
+        try {
+          const errorData = (await response.json()) as {
+            error?: string;
+            hint?: string;
+          };
+          serverMessage = errorData.hint || errorData.error || "";
+        } catch (parseError) {
+          console.warn("Unable to parse checkout session error", parseError);
+        }
+
+        if (serverMessage) {
+          setProfileError(serverMessage);
+        }
+
+        throw new Error(`Unexpected response: ${response.status}`);
+      }
+
+      const data = (await response.json()) as { url?: string | null };
+
+      if (!data?.url) {
+        throw new Error("Missing checkout URL");
+      }
+
+      trackEvent("wizard_checkout_session_ready");
+      window.location.href = data.url;
+    } catch (error) {
+      console.error("Unable to start Stripe checkout", error);
+      setProfileError(
+        "We couldn't open Stripe checkout. Refresh and try again or contact support.",
+      );
+      trackEvent("wizard_checkout_session_error", {
+        error_type: error instanceof Error ? error.name : "unknown",
+      });
+    } finally {
+      setIsCreatingCheckout(false);
+    }
+  };
+
   const showPaywall = Boolean(user) && !isSubscriber;
   const showFreePreviewNotice = Boolean(user) && !isSubscriber && freePreviewUsed;
 
@@ -385,11 +500,10 @@ export default function WizardPage() {
     if (showPaywall && !paywallTrackedRef.current) {
       trackEvent("wizard_paywall_viewed", {
         free_preview_used: freePreviewUsed,
-        has_payment_link: isPaymentLinkConfigured,
       });
       paywallTrackedRef.current = true;
     }
-  }, [freePreviewUsed, isPaymentLinkConfigured, showPaywall]);
+  }, [freePreviewUsed, showPaywall]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-sky-50 text-slate-900">
@@ -489,32 +603,20 @@ export default function WizardPage() {
               <p className="mt-3 text-sm text-rose-600">{profileError}</p>
             )}
             <div className="mt-4 flex flex-wrap items-center gap-3">
-              <Link
+              <button
                 id="mp-paywall-cta"
-                href={paymentLinkHref}
-                target={isPaymentLinkConfigured ? "_blank" : undefined}
-                rel={isPaymentLinkConfigured ? "noopener noreferrer" : undefined}
-                className={`rounded-full px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition ${
-                  isPaymentLinkConfigured
-                    ? "bg-emerald-600 hover:bg-emerald-700"
-                    : "bg-slate-300 text-slate-600"
-                }`}
-                onClick={() =>
-                  trackEvent("wizard_paywall_cta_click", {
-                    has_payment_link: isPaymentLinkConfigured,
-                  })
-                }
+                type="button"
+                onClick={() => {
+                  trackEvent("wizard_paywall_cta_click");
+                  void handleStartCheckout();
+                }}
+                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                disabled={isCreatingCheckout || isConfirmingSubscription}
               >
-                {isPaymentLinkConfigured ? "Go to checkout" : "Add payment link"}
-              </Link>
+                {isCreatingCheckout ? "Opening Stripe..." : "Go to checkout"}
+              </button>
               <span className="text-xs text-emerald-700">
-                {isPaymentLinkConfigured ? (
-                  <>
-                    After payment you&apos;ll return here with <code>?paid=1</code> to unlock instantly.
-                  </>
-                ) : (
-                  "Set NEXT_PUBLIC_STRIPE_PAYMENT_LINK in your .env to enable checkout."
-                )}
+                After payment you&apos;ll return here automatically and unlock as soon as the subscription confirms.
               </span>
             </div>
           </section>

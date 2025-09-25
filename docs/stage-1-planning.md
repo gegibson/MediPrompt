@@ -12,7 +12,7 @@
 
 ## Monetization & Pricing
 - Offer: "Mediprompt - Unlimited Prompt Builder (Monthly)" Stripe subscription at $9/month.
-- Flow: Landing preview (2 free demos) -> Wizard sign up -> Stripe Payment Link redirect to `/wizard?paid=1`.
+- Flow: Landing preview (2 free demos) -> Wizard sign up -> Server-created Stripe Checkout redirect to `/wizard?checkout=success&session_id={CHECKOUT_SESSION_ID}`.
 - Paywall promise: unlimited prompts, cancel any time, no PHI storage.
 
 ## Compliance & Data Posture
@@ -41,7 +41,7 @@ Stage 5 CSP hardening quick-start: `docs/security/csp-snippets.md`.
 ## Tech & Implementation Snapshot
 - Front end: Next.js 15 App Router with TypeScript and Tailwind.
 - Auth & data: Supabase (users table with `is_subscriber`, `subscribed_at`).
-- Payments: Stripe Payment Link redirecting to `/wizard?paid=1`.
+- Payments: Stripe Checkout session redirecting to `/wizard?checkout=success&session_id={CHECKOUT_SESSION_ID}`.
 - Naming: prefix IDs and localStorage entries with `mp-` to avoid collisions.
 
 ---
@@ -54,7 +54,7 @@ Stage 5 CSP hardening quick-start: `docs/security/csp-snippets.md`.
   - Legal footer links: `/privacy`, `/terms`, `/disclaimer`.
 - `/wizard`
   - Auth-gated; requires Supabase login after first free preview.
-  - Checks `GET /me` for `is_subscriber` on load; if `?paid=1`, call `POST /subscribe/confirm` and refresh state.
+  - Checks `GET /me` for `is_subscriber` on load; if `?checkout=success&session_id=...`, call `POST /subscribe/confirm` and refresh state before clearing the query params.
   - Shows paywall card and disables submit when `is_subscriber` is false.
   - Includes compliance reminder, structured form, result card with copy button, and Stripe CTA.
 
@@ -90,7 +90,7 @@ Stage 5 CSP hardening quick-start: `docs/security/csp-snippets.md`.
 # MVP Success Criteria
 - Landing page delivers instant preview value, includes PHI avoidance copy, and reliably routes to `/wizard`.
 - Wizard enforces: login required after first free preview, subscribers only can submit prompts, and `?paid=1` unlocks the account immediately.
-- Stripe Payment Link exists in test mode with redirect to `/wizard?paid=1`.
+- Stripe Checkout session exists in test mode with redirect to `/wizard?checkout=success&session_id={CHECKOUT_SESSION_ID}`.
 - Supabase project stores only auth + subscription metadata; no prompt text saved.
 - Analytics events captured without user-provided text.
 - Compliance messaging (educational only, no PHI) present on hero, helper copy, paywall, and footer.

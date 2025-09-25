@@ -63,8 +63,8 @@ export default nextConfig;
 ### Notes
 - **Plausible:** If `NEXT_PUBLIC_PLAUSIBLE_DOMAIN` is empty, the script is not loaded and you can omit `PLAUSIBLE_DOMAIN` in CSP until you enable analytics.
 - **Supabase:** Update `SUPABASE_PROJECT` to the project URL (e.g., `https://xyzcompany.supabase.co`). Include any other Supabase subdomains if you use realtime/storage.
-- **Stripe:** The app only links to a Payment Link. If you later embed Stripe scripts, add `https://js.stripe.com` to `script-src` and `frame-src`.
-- **Further Tightening:** Consider adding `base-uri 'self'` and `form-action 'self' https://<stripe-link>` when forms or iframes are introduced.
+- **Stripe:** Hosted Checkout redirect only. If you later embed Stripe Elements or client scripts, add `https://js.stripe.com` to `script-src` and `frame-src`.
+- **Further Tightening:** Consider adding `base-uri 'self'` and `form-action 'self' https://checkout.stripe.com` when forms or iframes are introduced.
 
 ## Implementation Checklist
 - [ ] Update `next.config.ts` with the snippet (after filling domain placeholders).
