@@ -371,9 +371,9 @@ export function AuthProvider({
           return;
         }
 
+        await persistSession(currentSession);
         setSession(currentSession);
         setUser(currentSession?.user ?? null);
-        await persistSession(currentSession);
       } catch (error) {
         console.error("Unable to load Supabase session", error);
       } finally {
@@ -392,16 +392,14 @@ export function AuthProvider({
         return;
       }
 
+      await persistSession(nextSession);
+
       setSession(nextSession);
       setUser(nextSession?.user ?? null);
 
       if (event === "SIGNED_OUT") {
-        await persistSession(null);
         setIsAuthModalOpen(false);
-        return;
       }
-
-      await persistSession(nextSession);
     });
 
     return () => {

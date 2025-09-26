@@ -26,6 +26,7 @@ type MeResponse = {
 };
 
 const FREE_PREVIEW_STORAGE_KEY = "mp-wizard-preview-used";
+const CHECKOUT_SESSION_STORAGE_KEY = "mp-last-checkout-session";
 
 const defaultFormState: FormState = {
   topic: "",
@@ -208,7 +209,36 @@ export default function WizardPage() {
   const sessionIdFromParams = searchParams.get("session_id");
 
   useEffect(() => {
-    if (!user || checkoutStatus !== "success" || !sessionIdFromParams) {
+    if (!user || checkoutStatus !== "success") {
+      return;
+    }
+
+    let sessionId = sessionIdFromParams?.trim() ?? "";
+
+    if (!sessionId || sessionId.includes("CHECKOUT_SESSION_ID")) {
+      if (typeof window !== "undefined") {
+        const storedId = window.sessionStorage.getItem(
+          CHECKOUT_SESSION_STORAGE_KEY,
+        );
+
+        if (storedId && !storedId.includes("CHECKOUT_SESSION_ID")) {
+          sessionId = storedId;
+        }
+      }
+    }
+
+    if (typeof window !== "undefined") {
+      console.log("[Wizard] confirming subscription with sessionId", sessionId);
+      // expose for quick inspection in devtools
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).mpLastCheckoutSession = sessionId;
+    }
+
+    if (!sessionId) {
+      setProfileError(
+        "We completed checkout but could not confirm the subscription. Refresh the page or contact support.",
+      );
+      trackEvent("subscription_confirm_missing_session");
       return;
     }
 
@@ -223,7 +253,7 @@ export default function WizardPage() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ sessionId: sessionIdFromParams }),
+          body: JSON.stringify({ sessionId }),
         });
 
         if (response.status === 501) {
@@ -250,6 +280,9 @@ export default function WizardPage() {
         });
       } finally {
         setIsConfirmingSubscription(false);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.removeItem(CHECKOUT_SESSION_STORAGE_KEY);
+        }
         router.replace("/wizard");
       }
     })();
@@ -472,10 +505,25 @@ export default function WizardPage() {
         throw new Error(`Unexpected response: ${response.status}`);
       }
 
-      const data = (await response.json()) as { url?: string | null };
+      const data = (await response.json()) as {
+        url?: string | null;
+        sessionId?: string | null;
+      };
 
       if (!data?.url) {
         throw new Error("Missing checkout URL");
+      }
+
+      if (typeof window !== "undefined") {
+        if (data.sessionId) {
+          console.log("[Wizard] storing checkout sessionId", data.sessionId);
+          window.sessionStorage.setItem(
+            CHECKOUT_SESSION_STORAGE_KEY,
+            data.sessionId,
+          );
+        } else {
+          window.sessionStorage.removeItem(CHECKOUT_SESSION_STORAGE_KEY);
+        }
       }
 
       trackEvent("wizard_checkout_session_ready");
