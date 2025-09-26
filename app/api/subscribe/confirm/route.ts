@@ -62,6 +62,10 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
 
   if (userError || !user) {
+    console.error("Subscription confirm unauthenticated", {
+      hasAccessToken: Boolean(request.headers.get("cookie")?.includes("sb-access-token")),
+      userError,
+    });
     return NextResponse.json({ error: "Unauthenticated" }, { status: 401 });
   }
 
