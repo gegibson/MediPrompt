@@ -41,6 +41,7 @@ function AuthModal({
   const [mode, setMode] = useState<"sign-in" | "sign-up" | "reset">(
     "sign-in",
   );
+  const MIN_PASSWORD_LENGTH = 8;
   const [supabaseError, setSupabaseError] = useState<string>(
     supabase ? "" : "Supabase configuration missing. Add your environment keys to enable authentication.",
   );
@@ -112,6 +113,11 @@ function AuthModal({
       }
 
       if (mode === "sign-up") {
+        if (trimmedPassword.length < MIN_PASSWORD_LENGTH) {
+          setStatus("error");
+          setMessage(`Password must be at least ${MIN_PASSWORD_LENGTH} characters.`);
+          return;
+        }
         if (trimmedPassword !== confirmPassword.trim()) {
           setStatus("error");
           setMessage("Passwords do not match.");
@@ -122,7 +128,9 @@ function AuthModal({
           email: trimmedEmail,
           password: trimmedPassword,
           options: {
-            emailRedirectTo: `${window.location.origin}/reset-password`,
+            // After confirming email, return to the app root so users land signed-in
+            // without being prompted to reset their password.
+            emailRedirectTo: `${window.location.origin}/?signup=confirmed`,
           },
         });
 
@@ -229,6 +237,15 @@ function AuthModal({
                 onChange={(event) => setPassword(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
+              {mode === "sign-up" && (
+                <p
+                  className={`text-xs ${
+                    password.trim().length >= MIN_PASSWORD_LENGTH ? "text-slate-500" : "text-rose-600"
+                  }`}
+                >
+                  Minimum {MIN_PASSWORD_LENGTH} characters.
+                </p>
+              )}
             </div>
           )}
 
@@ -250,13 +267,31 @@ function AuthModal({
                 onChange={(event) => setConfirmPassword(event.target.value)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
+              <p
+                className={`text-xs ${
+                  confirmPassword.length === 0 || password === confirmPassword
+                    ? "text-slate-500"
+                    : "text-rose-600"
+                }`}
+              >
+                {confirmPassword.length === 0 || password === confirmPassword
+                  ? "Retype your password to confirm."
+                  : "Passwords do not match."}
+              </p>
             </div>
           )}
 
           <button
             type="submit"
             className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-            disabled={status === "loading" || !supabase}
+            disabled={
+              status === "loading" ||
+              !supabase ||
+              (mode === "sign-up" && (
+                password.trim().length < MIN_PASSWORD_LENGTH ||
+                password !== confirmPassword.trim()
+              ))
+            }
           >
             {status === "loading"
               ? "Working..."
