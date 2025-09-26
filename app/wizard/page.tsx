@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { trackEvent } from "@/lib/analytics/track";
+import { detectPhi, buildWarningMessage } from "@/lib/safety/phiGuard";
 
 type FormRole = "patient" | "caregiver";
 type FormGoal = "learn-basics" | "medications" | "insurance";
@@ -94,6 +95,8 @@ export default function WizardPage() {
   const [isSubscriber, setIsSubscriber] = useState<boolean>(false);
   const [profileLoading, setProfileLoading] = useState<boolean>(false);
   const [profileError, setProfileError] = useState<string>("");
+  const [topicPhiWarning, setTopicPhiWarning] = useState<string>("");
+  const [contextPhiWarning, setContextPhiWarning] = useState<string>("");
   const [isConfirmingSubscription, setIsConfirmingSubscription] =
     useState<boolean>(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<boolean>(false);
@@ -312,12 +315,18 @@ export default function WizardPage() {
     router.replace("/wizard");
   }, [checkoutStatus, router, sessionIdFromParams, user]);
 
-  const handleFieldChange = useCallback(
-    <Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
-      setFormState((previous) => ({ ...previous, [key]: value }));
-    },
-    [],
-  );
+  const handleFieldChange = useCallback(<Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
+    setFormState((previous) => ({ ...previous, [key]: value }));
+
+    if (key === "topic") {
+      const scan = detectPhi(String(value));
+      setTopicPhiWarning(scan.flagged ? buildWarningMessage(scan) : "");
+    }
+    if (key === "context") {
+      const scan = detectPhi(String(value));
+      setContextPhiWarning(scan.flagged ? buildWarningMessage(scan) : "");
+    }
+  }, []);
 
   const canSubmit = useMemo(() => {
     if (!formState.topic.trim() || !formState.context.trim()) {
@@ -413,6 +422,23 @@ export default function WizardPage() {
         trackEvent("wizard_prompt_blocked", { reason: "paywall" });
       }
       return;
+    }
+
+    const topicScan = detectPhi(formState.topic);
+    const contextScan = detectPhi(formState.context);
+    setTopicPhiWarning(topicScan.flagged ? buildWarningMessage(topicScan) : "");
+    setContextPhiWarning(contextScan.flagged ? buildWarningMessage(contextScan) : "");
+    if (topicScan.flagged || contextScan.flagged) {
+      trackEvent("wizard_input_flagged", {
+        source: "wizard",
+        topic_names: topicScan.counts.name,
+        topic_dates: topicScan.counts.date,
+        topic_long_numbers: topicScan.counts.long_number,
+        context_names: contextScan.counts.name,
+        context_dates: contextScan.counts.date,
+        context_long_numbers: contextScan.counts.long_number,
+        total: topicScan.counts.total + contextScan.counts.total,
+      });
     }
 
     const nextPrompt = buildWizardPrompt(formState);
@@ -739,9 +765,13 @@ export default function WizardPage() {
                 required
                 disabled={authLoading}
               />
-              <p className="text-xs text-slate-500">
-                Avoid identifiers — describe the topic generally.
-              </p>
+              {topicPhiWarning ? (
+                <p className="text-xs text-rose-600">{topicPhiWarning}</p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Avoid identifiers — describe the topic generally.
+                </p>
+              )}
             </div>
 
             <div className="grid gap-2">
@@ -811,9 +841,13 @@ export default function WizardPage() {
                 required
                 disabled={authLoading}
               />
-              <p className="text-xs text-slate-500">
-                Keep it anonymized — no names, dates, or identifiers. We don’t store this content.
-              </p>
+              {contextPhiWarning ? (
+                <p className="text-xs text-rose-600">{contextPhiWarning}</p>
+              ) : (
+                <p className="text-xs text-slate-500">
+                  Keep it anonymized — no names, dates, or identifiers. We don’t store this content.
+                </p>
+              )}
             </div>
 
             <div className="flex flex-wrap items-center gap-3">

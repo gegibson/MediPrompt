@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { trackEvent } from "@/lib/analytics/track";
+import { detectPhi, buildWarningMessage } from "@/lib/safety/phiGuard";
 
 const PREVIEW_STORAGE_KEY = "mp-landing-preview-count";
 const PREVIEW_LIMIT = 2;
@@ -39,6 +40,7 @@ export default function LandingPage() {
   const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
     "idle",
   );
+  const [phiWarning, setPhiWarning] = useState<string>("");
   // Use a deterministic placeholder during SSR to avoid hydration mismatches,
   // then randomize on the client after mount for a bit of variety.
   const [placeholderExample, setPlaceholderExample] = useState<string>(
@@ -94,6 +96,20 @@ export default function LandingPage() {
         trackEvent("landing_preview_limit_hit");
       }
       return;
+    }
+
+    const phi = detectPhi(topic);
+    if (phi.flagged) {
+      setPhiWarning(buildWarningMessage(phi));
+      trackEvent("wizard_input_flagged", {
+        source: "landing",
+        names: phi.counts.name,
+        dates: phi.counts.date,
+        long_numbers: phi.counts.long_number,
+        total: phi.counts.total,
+      });
+    } else {
+      setPhiWarning("");
     }
 
     const nextPrompt = buildPreviewPrompt(topic);
@@ -245,14 +261,23 @@ export default function LandingPage() {
                   type="text"
                   placeholder={`E.g. ${placeholderExample}`}
                   value={topic}
-                  onChange={(event) => setTopic(event.target.value)}
+                  onChange={(event) => {
+                    const value = event.target.value;
+                    setTopic(value);
+                    const scan = detectPhi(value);
+                    setPhiWarning(scan.flagged ? buildWarningMessage(scan) : "");
+                  }}
                   className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
                   disabled={!canPreview}
                   required
                 />
-                <p className="text-xs text-slate-500">
-                  Use generic terms only — no names, ID numbers, addresses, or dates.
-                </p>
+                {phiWarning ? (
+                  <p className="text-xs text-rose-600">{phiWarning}</p>
+                ) : (
+                  <p className="text-xs text-slate-500">
+                    Use generic terms only — no names, ID numbers, addresses, or dates.
+                  </p>
+                )}
               </div>
 
               <div className="flex flex-wrap items-center gap-3">
