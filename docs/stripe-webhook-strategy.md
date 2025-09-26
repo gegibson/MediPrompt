@@ -28,15 +28,15 @@ This note captures how the app now provisions Stripe Checkout sessions, confirms
 STRIPE_SECRET_KEY=sk_test_example
 STRIPE_PRICE_ID=price_123
 STRIPE_WEBHOOK_SECRET=whsec_123
-STRIPE_CHECKOUT_SUCCESS_URL=https://localhost:3000/wizard?checkout=success
-STRIPE_CHECKOUT_CANCEL_URL=https://localhost:3000/wizard?checkout=cancelled
+STRIPE_CHECKOUT_SUCCESS_URL=https://localhost:3001/wizard?checkout=success
+STRIPE_CHECKOUT_CANCEL_URL=https://localhost:3001/wizard?checkout=cancelled
 ```
 - Generate the Checkout success/cancel URLs inside the Stripe Dashboard (or CLI) and be sure the success link contains `session_id={CHECKOUT_SESSION_ID}`.
-- When running locally, the defaults point to `http://localhost:3000`, so you can omit the overrides unless you host behind a tunnel.
+- When running locally, the defaults point to `http://localhost:3001`, so you can omit the overrides unless you host behind a tunnel.
 
 ## 5. Local Testing Flow
 1. `npm install` (to pull `stripe`) and `npm run dev`.
-2. Run `stripe listen --forward-to localhost:3000/api/stripe/webhook` and copy the displayed `whsec_...` into `.env.local`.
+2. Run `stripe listen --forward-to localhost:3001/api/stripe/webhook` and copy the displayed `whsec_...` into `.env.local`.
 3. Sign in, hit the paywall, click **Go to checkout**, and complete a test payment.
 4. After redirect, the wizard should call `POST /api/subscribe/confirm`, show "Unlocking subscription...", and clear the query params once confirmed.
 5. Cancel the subscription from the Stripe dashboard; the webhook should flip `is_subscriber` back to `false`.

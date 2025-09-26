@@ -18,7 +18,7 @@ export async function GET() {
     );
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
     return NextResponse.json({ error: "Supabase client unavailable" }, { status: 500 });
@@ -46,9 +46,15 @@ export async function GET() {
     );
   }
 
+  // Avoid odd TS inference by explicitly shaping the result.
+  const p = profile ?? null;
+
+  const fallbackId = user.id;
+  const fallbackEmail = user.email ?? "";
+
   return NextResponse.json({
-    id: profile?.id ?? user.id,
-    email: profile?.email ?? user.email,
-    is_subscriber: Boolean(profile?.is_subscriber),
+    id: p?.id ?? fallbackId,
+    email: p?.email ?? fallbackEmail,
+    is_subscriber: Boolean(p?.is_subscriber),
   });
 }

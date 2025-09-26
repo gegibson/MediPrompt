@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import path from "path";
 
 const PLAUSIBLE_SCRIPT_SRC = process.env.NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC?.trim();
 const PLAUSIBLE_DOMAIN = process.env.NEXT_PUBLIC_PLAUSIBLE_DOMAIN?.trim();
@@ -26,12 +27,13 @@ const SUPABASE_ORIGIN = SUPABASE_URL
 
 const csp = [
   "default-src 'self'",
-  // Allow Plausible only when analytics domain configured
-  `script-src 'self' 'wasm-unsafe-eval'${PLAUSIBLE_DOMAIN ? ` ${PLAUSIBLE_ORIGIN}` : ""}`,
+  // Allow Next.js inline runtime with 'unsafe-inline'; add Plausible origin if enabled
+  `script-src 'self' 'unsafe-inline' 'wasm-unsafe-eval'${PLAUSIBLE_DOMAIN ? ` ${PLAUSIBLE_ORIGIN}` : ""}`,
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data:",
   "font-src 'self' data:",
-  `connect-src 'self'${PLAUSIBLE_DOMAIN ? ` ${PLAUSIBLE_ORIGIN}` : ""} ${SUPABASE_ORIGIN} https://api.supabase.com`,
+  // Allow HTTPS endpoints (Supabase APIs) and WSS (Realtime) in addition to allowlisted origins
+  `connect-src 'self' https: wss:${PLAUSIBLE_DOMAIN ? ` ${PLAUSIBLE_ORIGIN}` : ""} ${SUPABASE_ORIGIN} https://api.supabase.com`,
   "frame-ancestors 'self'",
   // If you later embed Stripe Elements, add: js.stripe.com to script-src and frame-src
   // You can also add: frame-src https://checkout.stripe.com for hosted checkout if embedding
@@ -63,6 +65,12 @@ const securityHeaders = [
 const IS_PROD = process.env.NODE_ENV === "production";
 
 const nextConfig: NextConfig = {
+  // Silence root inference warnings and ensure correct workspace
+  turbopack: {
+    root: __dirname,
+  },
+  // Avoid traversing outside this project for file tracing
+  outputFileTracingRoot: path.join(__dirname),
   async headers() {
     if (!IS_PROD) {
       // Avoid strict CSP in development to prevent dev overlay/script blocking.

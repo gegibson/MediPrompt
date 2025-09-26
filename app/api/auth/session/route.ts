@@ -1,52 +1,85 @@
 import { NextResponse } from "next/server";
 
-type SessionPayload = {
-  access_token: string;
-  refresh_token: string;
-  expires_at: number | null;
+const ACCESS_COOKIE = "sb-access-token";
+const REFRESH_COOKIE = "sb-refresh-token";
+
+type PersistSessionBody = {
+  access_token?: string;
+  refresh_token?: string;
+  expires_at?: number | null;
 };
 
-const DEFAULT_MAX_AGE = 60 * 60 * 24 * 3; // three days fallback
+function resolveCookieOptions(request: Request) {
+  const url = new URL(request.url);
+  const forwardedProto = request.headers.get("x-forwarded-proto");
+  const secure = (forwardedProto ?? url.protocol.replace(":", "")) === "https";
 
-function getCookieOptions(expiresAt: number | null) {
-  const now = Math.floor(Date.now() / 1000);
-  const maxAge = expiresAt ? Math.max(expiresAt - now, 0) : DEFAULT_MAX_AGE;
-  const base = {
-    httpOnly: true,
+  return {
+    httpOnly: true as const,
     sameSite: "lax" as const,
     path: "/",
-    secure: process.env.NODE_ENV === "production",
+    secure,
   };
-
-  return { ...base, maxAge };
 }
+
+export const dynamic = "force-dynamic";
 
 export async function POST(request: Request) {
+  let payload: PersistSessionBody;
+
   try {
-    const body = (await request.json()) as Partial<SessionPayload>;
-
-    if (!body.access_token || !body.refresh_token) {
-      return NextResponse.json({ error: "Missing session tokens" }, { status: 400 });
-    }
-
-    const response = NextResponse.json({ success: true });
-    const options = getCookieOptions(body.expires_at ?? null);
-
-    response.cookies.set("sb-access-token", body.access_token, options);
-    response.cookies.set("sb-refresh-token", body.refresh_token, options);
-
-    return response;
-  } catch (error) {
-    console.error("Failed to persist Supabase session", error);
-    return NextResponse.json({ error: "Unable to persist session" }, { status: 500 });
+    payload = (await request.json()) as PersistSessionBody;
+  } catch {
+    return NextResponse.json({ error: "Invalid session payload" }, { status: 400 });
   }
-}
 
-export async function DELETE() {
+  if (!payload?.access_token || !payload?.refresh_token) {
+    return NextResponse.json(
+      { error: "Missing access or refresh token" },
+      { status: 400 },
+    );
+  }
+
   const response = NextResponse.json({ success: true });
+  const options = resolveCookieOptions(request);
+  const expires = payload.expires_at
+    ? new Date(payload.expires_at * 1000)
+    : undefined;
 
-  response.cookies.set("sb-access-token", "", { path: "/", maxAge: 0 });
-  response.cookies.set("sb-refresh-token", "", { path: "/", maxAge: 0 });
+  response.cookies.set({
+    name: ACCESS_COOKIE,
+    value: payload.access_token,
+    ...options,
+    expires,
+  });
+  response.cookies.set({
+    name: REFRESH_COOKIE,
+    value: payload.refresh_token,
+    ...options,
+    // keep refresh token slightly longer; Supabase rotates automatically
+    expires,
+  });
 
   return response;
 }
+
+export async function DELETE(request: Request) {
+  const response = NextResponse.json({ success: true });
+  const options = resolveCookieOptions(request);
+
+  response.cookies.set({
+    name: ACCESS_COOKIE,
+    value: "",
+    ...options,
+    expires: new Date(0),
+  });
+  response.cookies.set({
+    name: REFRESH_COOKIE,
+    value: "",
+    ...options,
+    expires: new Date(0),
+  });
+
+  return response;
+}
+

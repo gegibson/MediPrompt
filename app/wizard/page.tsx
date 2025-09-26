@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
@@ -83,7 +83,7 @@ function getPreviewStorageKey(userId: string | undefined) {
   return `${FREE_PREVIEW_STORAGE_KEY}-${userId ?? "anon"}`;
 }
 
-export default function WizardPage() {
+function WizardPageInner() {
   const { supabase, user, loading: authLoading, openAuthModal } = useAuthContext();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -924,5 +924,13 @@ export default function WizardPage() {
         </div>
       </footer>
     </div>
+  );
+}
+
+export default function WizardPage() {
+  return (
+    <Suspense fallback={null}>
+      <WizardPageInner />
+    </Suspense>
   );
 }

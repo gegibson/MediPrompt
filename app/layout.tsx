@@ -21,6 +21,19 @@ export const metadata: Metadata = {
   title: "Mediprompt — Safer AI health prompts",
   description:
     "Mediprompt helps patients and caregivers craft safer, clearer health prompts with educational framing and no PHI storage.",
+  openGraph: {
+    title: "Mediprompt — Safer AI health prompts",
+    description:
+      "Craft safer, clearer health prompts with educational framing and no PHI storage.",
+    images: [
+      {
+        url: "/og-default.svg",
+        width: 1200,
+        height: 630,
+        alt: "Mediprompt",
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

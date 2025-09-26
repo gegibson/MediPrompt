@@ -13,8 +13,8 @@ SUPABASE_SERVICE_ROLE_KEY=service-role-key-for-admin-updates
 STRIPE_SECRET_KEY=sk_test_example
 STRIPE_PRICE_ID=price_123
 STRIPE_WEBHOOK_SECRET=whsec_123
-# STRIPE_CHECKOUT_SUCCESS_URL=https://localhost:3000/wizard?checkout=success
-# STRIPE_CHECKOUT_CANCEL_URL=https://localhost:3000/wizard?checkout=cancelled
+# STRIPE_CHECKOUT_SUCCESS_URL=https://localhost:3001/wizard?checkout=success
+# STRIPE_CHECKOUT_CANCEL_URL=https://localhost:3001/wizard?checkout=cancelled
 
 NEXT_PUBLIC_PLAUSIBLE_DOMAIN=mediprompt.example
 # NEXT_PUBLIC_PLAUSIBLE_SCRIPT_SRC=https://plausible.io/js/script.js

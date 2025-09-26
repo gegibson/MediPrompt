@@ -395,12 +395,16 @@ export function AuthProvider({
     }
 
     let ignore = false;
+    const client = supabase;
 
     async function initSession() {
+      if (!client) {
+        return;
+      }
       try {
         const {
           data: { session: currentSession },
-        } = await supabase.auth.getSession();
+        } = await client.auth.getSession();
 
         if (ignore) {
           return;
@@ -422,7 +426,7 @@ export function AuthProvider({
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (event, nextSession) => {
+    } = client.auth.onAuthStateChange(async (event, nextSession) => {
       if (ignore) {
         return;
       }

@@ -5,6 +5,7 @@ import {
   createSupabaseServiceRoleClient,
   hasServiceRoleConfiguration,
 } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/server";
 import {
   isStripeWebhookConfigured,
   stripePriceId,
@@ -15,11 +16,7 @@ import { getStripeClient } from "@/lib/stripe/server";
 export const dynamic = "force-dynamic";
 export const runtime = "nodejs";
 
-type AdminClient = ReturnType<typeof createSupabaseServiceRoleClient> extends infer Client
-  ? Client extends null
-    ? never
-    : Client
-  : never;
+type AdminClient = NonNullable<ReturnType<typeof createSupabaseServiceRoleClient>>;
 
 export async function POST(request: Request) {
   if (!hasServiceRoleConfiguration()) {
@@ -187,13 +184,15 @@ async function upsertSubscription(
 ) {
   const resolvedEmail = await resolveUserEmail(adminClient, userId, email);
 
+  const updatePayload: Database["public"]["Tables"]["users"]["Update"] = {
+    is_subscriber: true,
+    subscribed_at: subscribedAt,
+    ...(resolvedEmail ? { email: resolvedEmail } : {}),
+  };
+
   const updateResult = await adminClient
     .from("users")
-    .update({
-      is_subscriber: true,
-      subscribed_at: subscribedAt,
-      ...(resolvedEmail ? { email: resolvedEmail } : {}),
-    })
+    .update(updatePayload)
     .eq("id", userId)
     .select("id")
     .maybeSingle();
@@ -207,12 +206,14 @@ async function upsertSubscription(
       throw new Error(`Unable to resolve email for user ${userId}`);
     }
 
-    const insertResult = await adminClient.from("users").insert({
+    const insertPayload: Database["public"]["Tables"]["users"]["Insert"] = {
       id: userId,
       email: resolvedEmail,
       is_subscriber: true,
       subscribed_at: subscribedAt,
-    });
+    };
+
+    const insertResult = await adminClient.from("users").insert(insertPayload);
 
     if (insertResult.error) {
       throw insertResult.error;
@@ -221,12 +222,14 @@ async function upsertSubscription(
 }
 
 async function clearSubscription(adminClient: AdminClient, userId: string) {
+  const clearPayload: Database["public"]["Tables"]["users"]["Update"] = {
+    is_subscriber: false,
+    subscribed_at: null,
+  };
+
   const updateResult = await adminClient
     .from("users")
-    .update({
-      is_subscriber: false,
-      subscribed_at: null,
-    })
+    .update(clearPayload)
     .eq("id", userId);
 
   if (updateResult.error) {

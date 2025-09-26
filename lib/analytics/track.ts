@@ -13,6 +13,20 @@ type EventValue = string | number | boolean;
 export type PlausibleEventProps = Record<string, EventValue | null | undefined>;
 
 export function trackEvent(eventName: string, props?: PlausibleEventProps) {
+  // Client-only debug helper: log events when URL contains ?debug=events
+  if (typeof window !== "undefined") {
+    const search = window.location?.search || "";
+    const debugEvents = /(?:\?|&)debug=events(?:&|$)/.test(search);
+    if (debugEvents) {
+      // Log even if Plausible is disabled to aid local/staging testing
+      try {
+        console.debug("[analytics]", eventName, props ?? {});
+      } catch {
+        // no-op
+      }
+    }
+  }
+
   if (!PLAUSIBLE_ENABLED) {
     return;
   }

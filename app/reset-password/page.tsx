@@ -28,6 +28,10 @@ export default function ResetPasswordPage() {
     let cancelled = false;
 
     async function captureRecoverySession() {
+      const client = supabase;
+      if (!client) {
+        return;
+      }
       const hashFragment = window.location.hash;
 
       if (hashFragment) {
@@ -37,7 +41,7 @@ export default function ResetPasswordPage() {
         const type = params.get("type");
 
         if (accessToken && refreshToken && type === "recovery") {
-          const { error } = await supabase.auth.setSession({
+          const { error } = await client.auth.setSession({
             access_token: accessToken,
             refresh_token: refreshToken,
           });

@@ -7,7 +7,37 @@ import {
   supabaseUrl,
 } from "./config";
 
-type Database = Record<string, unknown>;
+// Minimal typed Supabase schema for safer queries
+export type Database = {
+  public: {
+    Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string | null;
+          is_subscriber: boolean | null;
+          subscribed_at: string | null;
+        };
+        Insert: {
+          id: string;
+          email: string;
+          is_subscriber: boolean;
+          subscribed_at: string | null;
+        };
+        Update: {
+          email?: string | null;
+          is_subscriber?: boolean | null;
+          subscribed_at?: string | null;
+        };
+        Relationships: [];
+      };
+    };
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+    CompositeTypes: Record<string, never>;
+  };
+};
 
 export function isSupabaseConfigured() {
   return Boolean(supabaseUrl && supabaseAnonKey);
@@ -17,12 +47,14 @@ export function hasServiceRoleConfiguration() {
   return Boolean(supabaseUrl && supabaseServiceRoleKey);
 }
 
-export function createSupabaseServerClient(): SupabaseClient<Database> | null {
+export async function createSupabaseServerClient(): Promise<
+  SupabaseClient<Database> | null
+> {
   if (!isSupabaseConfigured()) {
     return null;
   }
 
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const accessToken = cookieStore.get("sb-access-token")?.value;
 
   return createClient<Database>(supabaseUrl!, supabaseAnonKey!, {

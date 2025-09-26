@@ -8,7 +8,7 @@ Mediprompt helps patients and caregivers craft safer AI prompts by providing a s
 2. Seed your env file: `npm run setup:env` (or manually `cp .env.example .env.local`)
 3. Fill in the Supabase and Stripe values (Plausible is optional in dev)
 4. Quick sanity check: `npm run check:setup`
-5. Run the dev server: `npm run dev` and visit `http://localhost:3000`
+5. Run the dev server: `npm run dev` and visit `http://localhost:3001`
 
 Node 18+ is recommended to match the production runtime.
 
@@ -31,7 +31,7 @@ Without these, server routes respond with `501 Not Implemented` so that local UI
 
 - `npm run setup:env` — creates `.env.local` from `.env.example` and appends any missing keys (does not overwrite existing values).
 - `npm run check:setup` — inspects `.env.local` and prints which features are configured (Supabase, service role, Stripe checkout/webhook, Plausible).
-- `npm run stripe:listen` — uses the Stripe CLI to generate a new `STRIPE_WEBHOOK_SECRET`, writes it into `.env.local`, and forwards events to `http://localhost:3000/api/stripe/webhook`.
+- `npm run stripe:listen` — uses the Stripe CLI to generate a new `STRIPE_WEBHOOK_SECRET`, writes it into `.env.local`, and forwards events to `http://localhost:3001/api/stripe/webhook`.
 
 Note: The Stripe CLI must be installed for `stripe:listen` to work: https://stripe.com/docs/stripe-cli
 

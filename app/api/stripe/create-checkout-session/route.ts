@@ -54,7 +54,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
     return NextResponse.json({ error: "Supabase client unavailable" }, { status: 500 });

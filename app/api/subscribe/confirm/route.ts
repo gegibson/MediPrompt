@@ -7,6 +7,7 @@ import {
   hasServiceRoleConfiguration,
   isSupabaseConfigured,
 } from "@/lib/supabase/server";
+import type { Database } from "@/lib/supabase/server";
 import {
   isStripeCheckoutConfigured,
   stripePriceId,
@@ -50,7 +51,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const supabase = createSupabaseServerClient();
+  const supabase = await createSupabaseServerClient();
 
   if (!supabase) {
     return NextResponse.json({ error: "Supabase client unavailable" }, { status: 500 });
@@ -174,12 +175,14 @@ export async function POST(request: Request) {
       ? new Date(session.created * 1000).toISOString()
       : new Date().toISOString();
 
+  const updatePayload: Database["public"]["Tables"]["users"]["Update"] = {
+    is_subscriber: true,
+    subscribed_at: subscribedAt,
+  };
+
   const updateResult = await adminClient
     .from("users")
-    .update({
-      is_subscriber: true,
-      subscribed_at: subscribedAt,
-    })
+    .update(updatePayload)
     .eq("id", user.id)
     .select("id")
     .maybeSingle();
@@ -192,12 +195,14 @@ export async function POST(request: Request) {
   }
 
   if (!updateResult.data) {
-    const insertResult = await adminClient.from("users").insert({
+    const insertPayload: Database["public"]["Tables"]["users"]["Insert"] = {
       id: user.id,
-      email: user.email,
+      email: (user.email ?? "") as string,
       is_subscriber: true,
       subscribed_at: subscribedAt,
-    });
+    };
+
+    const insertResult = await adminClient.from("users").insert(insertPayload);
 
     if (insertResult.error) {
       return NextResponse.json(

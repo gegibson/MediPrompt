@@ -7,7 +7,8 @@ set -euo pipefail
 # 3) Start forwarding webhooks to the local Next.js endpoint
 
 EVENTS="checkout.session.completed,customer.subscription.updated,customer.subscription.deleted"
-FORWARD_URL="http://localhost:3000/api/stripe/webhook"
+# Match the app's default local port
+FORWARD_URL="http://localhost:3001/api/stripe/webhook"
 
 if ! command -v stripe >/dev/null 2>&1; then
   echo "[stripe-webhook] The Stripe CLI is not installed or not in PATH." >&2
@@ -49,4 +50,3 @@ echo "[stripe-webhook] Starting listener → forwarding to ${FORWARD_URL}"
 echo "[stripe-webhook] Press Ctrl+C to stop. Restart your dev server to pick up the new secret if needed."
 
 exec stripe listen --events "$EVENTS" --forward-to "$FORWARD_URL"
-
