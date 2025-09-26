@@ -39,9 +39,15 @@ export default function LandingPage() {
   const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
     "idle",
   );
-  const [placeholderExample] = useState(
-    () => friendlyExamples[Math.floor(Math.random() * friendlyExamples.length)],
+  // Use a deterministic placeholder during SSR to avoid hydration mismatches,
+  // then randomize on the client after mount for a bit of variety.
+  const [placeholderExample, setPlaceholderExample] = useState<string>(
+    friendlyExamples[0],
   );
+  useEffect(() => {
+    const pick = friendlyExamples[Math.floor(Math.random() * friendlyExamples.length)];
+    setPlaceholderExample(pick);
+  }, []);
   const { user, supabase, openAuthModal, loading } = useAuthContext();
 
   const handleAuthModalOpen = () => {

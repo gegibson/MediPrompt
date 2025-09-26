@@ -137,6 +137,8 @@ export default function WizardPage() {
     [previewStorageKey],
   );
 
+  const isLoggedIn = Boolean(user);
+
   const loadProfile = useCallback(async () => {
     if (!user) {
       setIsSubscriber(false);
@@ -318,33 +320,38 @@ export default function WizardPage() {
   );
 
   const canSubmit = useMemo(() => {
-    if (!user) {
-      return false;
-    }
-
     if (!formState.topic.trim() || !formState.context.trim()) {
       return false;
     }
 
-    if (!isSubscriber && freePreviewUsed) {
+    if (
+      authLoading ||
+      profileLoading ||
+      isConfirmingSubscription ||
+      isCreatingCheckout
+    ) {
       return false;
     }
 
-    if (authLoading || profileLoading || isConfirmingSubscription || isCreatingCheckout) {
-      return false;
+    if (isSubscriber) {
+      return true;
     }
 
-    return true;
+    if (!freePreviewUsed) {
+      return true;
+    }
+
+    return !isLoggedIn;
   }, [
     authLoading,
     formState.context,
     formState.topic,
     freePreviewUsed,
+    isLoggedIn,
     isCreatingCheckout,
     isConfirmingSubscription,
     isSubscriber,
     profileLoading,
-    user,
   ]);
 
   const callToActionLabel = useMemo(() => {
@@ -360,7 +367,11 @@ export default function WizardPage() {
       return "Opening Stripe...";
     }
 
-    if (!user) {
+    if (!isLoggedIn && !freePreviewUsed) {
+      return "Try a free prompt";
+    }
+
+    if (!isLoggedIn && freePreviewUsed) {
       return "Sign in to continue";
     }
 
@@ -380,7 +391,7 @@ export default function WizardPage() {
     isConfirmingSubscription,
     isSubscriber,
     profileLoading,
-    user,
+    isLoggedIn,
   ]);
 
   const triggerAuthModal = useCallback(
@@ -394,13 +405,13 @@ export default function WizardPage() {
   const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
 
-    if (!user) {
-      triggerAuthModal("wizard-submit");
-      return;
-    }
-
     if (!isSubscriber && freePreviewUsed) {
-      trackEvent("wizard_prompt_blocked", { reason: "paywall" });
+      if (!isLoggedIn) {
+        trackEvent("wizard_prompt_blocked", { reason: "anon-login" });
+        triggerAuthModal("wizard-submit");
+      } else {
+        trackEvent("wizard_prompt_blocked", { reason: "paywall" });
+      }
       return;
     }
 
@@ -541,8 +552,8 @@ export default function WizardPage() {
     }
   };
 
-  const showPaywall = Boolean(user) && !isSubscriber;
-  const showFreePreviewNotice = Boolean(user) && !isSubscriber && freePreviewUsed;
+  const showPaywall = isLoggedIn && !isSubscriber;
+  const showFreePreviewNotice = !isSubscriber && freePreviewUsed;
 
   useEffect(() => {
     if (showPaywall && !paywallTrackedRef.current) {
@@ -606,17 +617,17 @@ export default function WizardPage() {
             Tailor safer AI prompts with structured context.
           </h1>
           <p className="text-base text-slate-700 md:text-lg">
-            Sign in to unlock the guided workflow. Each account receives one free preview before subscribing for unlimited prompt generation.
+            Generate one guided prompt without logging in. Create a free account afterward to sync your subscription and unlock unlimited prompt generation.
           </p>
         </section>
 
         {!user && !authLoading && (
           <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">
-              Log in to access the Wizard
+              Ready for more than one prompt?
             </h2>
             <p className="mt-2 text-sm text-slate-600">
-              A quick account keeps your subscription status synced without storing prompt content. Supabase handles password security for us.
+              Try your complimentary preview first. When you&apos;re ready for unlimited prompts, create a free account so we can remember your subscription without storing any prompt content.
             </p>
             <div className="mt-4 flex flex-wrap items-center gap-3">
               <button
@@ -625,10 +636,10 @@ export default function WizardPage() {
                 onClick={() => triggerAuthModal("wizard-gate")}
                 className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
               >
-                Open login / signup
+                Log in or sign up
               </button>
               <span className="text-xs text-slate-500">
-                Subscription unlock happens after checkout via Stripe.
+                Stripe checkout is only available once you have an account.
               </span>
             </div>
           </section>
@@ -676,8 +687,19 @@ export default function WizardPage() {
               Free preview complete
             </h2>
             <p className="mt-1">
-              You&apos;ve used your complimentary Wizard prompt. Subscribe to continue generating tailored prompts anytime.
+              {isLoggedIn
+                ? "You've used your complimentary Wizard prompt. Subscribe to continue generating tailored prompts anytime."
+                : "You've used your complimentary Wizard prompt. Sign in to create an account and subscribe for unlimited prompt generation."}
             </p>
+            {!isLoggedIn && (
+              <button
+                type="button"
+                onClick={() => triggerAuthModal("wizard-free-preview")}
+                className="mt-3 inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
+              >
+                Sign in to continue
+              </button>
+            )}
           </section>
         )}
 

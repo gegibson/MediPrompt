@@ -6,7 +6,10 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "setup:env": "bash ./scripts/seed-env.sh",
+    "check:setup": "node ./scripts/check-setup.mjs",
+    "stripe:listen": "bash ./scripts/stripe-webhook.sh"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
