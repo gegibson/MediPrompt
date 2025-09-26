@@ -577,6 +577,21 @@ export default function WizardPage() {
               <p className="text-sm text-slate-600">
                 Structured prompts with HIPAA-safe guardrails
               </p>
+              <div className="mt-2">
+                <span
+                  className={
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold " +
+                    (isSubscriber
+                      ? "bg-emerald-100 text-emerald-700"
+                      : isLoggedIn
+                        ? "bg-sky-100 text-sky-700"
+                        : "bg-slate-100 text-slate-700")
+                  }
+                  title={isSubscriber ? "Active subscriber" : isLoggedIn ? "Logged in (free preview)" : "Anonymous (free preview)"}
+                >
+                  {isSubscriber ? "Plan: Unlimited" : isLoggedIn ? "Plan: Free (account)" : "Plan: Free (anon)"}
+                </span>
+              </div>
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
