@@ -22,3 +22,7 @@ add_header Strict-Transport-Security "max-age=31536000; includeSubDomains; prelo
 - Only enable HSTS after you have HTTPS on all subdomains (due to `includeSubDomains`).
 - Consider submitting the domain to the HSTS preload list once you are comfortable with permanent enforcement.
 
+## Verification
+- Local sanity check: `npm run verify:transport` confirms the production config includes the HSTS directives.
+- Deployed check: `curl -I https://YOUR_DOMAIN` should return `Strict-Transport-Security: max-age=31536000; includeSubDomains; preload`.
+- If a proxy strips headers, reapply them at the edge to keep the preload-compatible policy intact.

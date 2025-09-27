@@ -9,6 +9,8 @@
     "lint": "eslint",
     "setup:env": "bash ./scripts/seed-env.sh",
     "check:setup": "node ./scripts/check-setup.mjs",
+    "perf:check": "node ./scripts/perf-check.mjs",
+    "verify:transport": "node ./scripts/verify-transport.mjs",
     "stripe:listen": "bash ./scripts/stripe-webhook.sh"
   },
   "dependencies": {

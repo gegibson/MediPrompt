@@ -3,6 +3,9 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-inter: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-geist-mono: "Geist Mono", "SFMono-Regular", Menlo, Monaco, Consolas,
+    "Liberation Mono", "Courier New", monospace;
 }
 
 @theme inline {

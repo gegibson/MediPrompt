@@ -11,7 +11,7 @@ import {
 import type { Session, User } from "@supabase/supabase-js";
 
 import {
-  getSupabaseBrowserClient,
+  loadSupabaseBrowserClient,
   type SupabaseBrowserClient,
 } from "@/lib/supabase/browser";
 import { isBrowserSupabaseConfigured } from "@/lib/supabase/config";
@@ -363,11 +363,47 @@ export function AuthProvider({
 }: {
   children: React.ReactNode;
 }) {
-  const [supabase] = useState(() => getSupabaseBrowserClient());
+  const supabaseConfigured = isBrowserSupabaseConfigured();
+  const [supabase, setSupabase] = useState<SupabaseBrowserClient | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(() => isBrowserSupabaseConfigured());
+  const [loading, setLoading] = useState(() => supabaseConfigured);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+
+  useEffect(() => {
+    if (!supabaseConfigured) {
+      setLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    loadSupabaseBrowserClient()
+      .then((clientInstance) => {
+        if (cancelled) {
+          return;
+        }
+
+        if (!clientInstance) {
+          setSupabase(null);
+          setLoading(false);
+          return;
+        }
+
+        setSupabase(clientInstance);
+      })
+      .catch((error) => {
+        console.error("Unable to initialize Supabase client", error);
+        if (!cancelled) {
+          setSupabase(null);
+          setLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseConfigured]);
 
   const persistSession = useCallback(async (nextSession: Session | null) => {
     if (!nextSession) {

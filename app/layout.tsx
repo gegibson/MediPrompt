@@ -1,21 +1,9 @@
 import type { Metadata } from "next";
 import Script from "next/script";
-import { Inter, Geist_Mono } from "next/font/google";
 import "./globals.css";
 
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { getPlausibleConfig } from "@/lib/analytics/plausible";
-
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-  display: "swap",
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
 
 export const metadata: Metadata = {
   title: "Mediprompt — Safer AI health prompts",
@@ -42,10 +30,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const plausible = getPlausibleConfig();
+  const bodyClassName = "antialiased";
 
   return (
     <html lang="en">
-      <body className={`${inter.variable} ${geistMono.variable} antialiased`}>
+      <body className={bodyClassName}>
         <AuthProvider>{children}</AuthProvider>
         {plausible.enabled ? (
           <Script
