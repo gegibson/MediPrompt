@@ -1,152 +1,140 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { trackEvent } from "@/lib/analytics/track";
-import { detectPhi, buildWarningMessage } from "@/lib/safety/phiGuard";
-
-const PREVIEW_STORAGE_KEY = "mp-landing-preview-count";
-const PREVIEW_LIMIT = 2;
-
-const friendlyExamples = [
-  "Discussing new blood pressure concerns",
-  "Preparing questions about a child’s asthma",
-  "Clarifying insurance coverage terms",
-] as const;
-
-function buildPreviewPrompt(topic: string) {
-  const sanitizedTopic = topic.trim();
-
-  return [
-    `You are a cautious medical conversation coach helping a patient or caregiver prepare an AI chat about "${sanitizedTopic}". Provide guidance that remains educational, avoids diagnosing, and protects personal information.`,
-    "",
-    "Return the response in the following structure:",
-    "Prompt title: (friendly, 6-8 words)",
-    "Prompt body: A concise, well-structured prompt that:",
-    "- Frames the chat as educational only and asks the AI to remind the user to contact a licensed clinician for decisions.",
-    "- Requests answers in plain language and invites clarification questions.",
-    "- Emphasizes that no names, birth dates, addresses, record numbers, or other identifiers will be shared.",
-    "- Encourages next best steps or key follow-up questions to discuss with a professional.",
-    "Safety reminder: One sentence reiterating that the information is not medical advice.",
-  ].join("\n");
-}
+import {
+  promptCategories,
+  promptLibraryEntries,
+} from "@/lib/promptLibrary";
 
 export default function LandingPage() {
-  const [topic, setTopic] = useState("");
-  const [previewCount, setPreviewCount] = useState<number | null>(null);
-  const [previewPrompt, setPreviewPrompt] = useState<string>("");
-  const [copyStatus, setCopyStatus] = useState<"idle" | "success" | "error">(
-    "idle",
-  );
-  const [phiWarning, setPhiWarning] = useState<string>("");
-  // Use a deterministic placeholder during SSR to avoid hydration mismatches,
-  // then randomize on the client after mount for a bit of variety.
-  const [placeholderExample, setPlaceholderExample] = useState<string>(
-    friendlyExamples[0],
-  );
-  useEffect(() => {
-    const pick = friendlyExamples[Math.floor(Math.random() * friendlyExamples.length)];
-    setPlaceholderExample(pick);
-  }, []);
   const { user, supabase, openAuthModal, loading } = useAuthContext();
+  const categoryCounts = promptLibraryEntries.reduce<Record<string, number>>(
+    (acc, entry) => {
+      acc[entry.category] = (acc[entry.category] ?? 0) + 1;
+      return acc;
+    },
+    {},
+  );
+
+  const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [copyState, setCopyState] = useState<Record<string, "idle" | "copied" | "error">>({});
+  const [expandedPrompts, setExpandedPrompts] = useState<Record<string, boolean>>({});
+  const promptLibraryRef = useRef<HTMLElement | null>(null);
+
+  const categoryFilters = [
+    {
+      id: "all",
+      label: "All Prompts",
+      icon: "✨",
+      count: promptLibraryEntries.length,
+      description: "Browse every general template in one view.",
+    },
+    ...promptCategories.map((category) => ({
+      id: category.id,
+      label: category.name,
+      icon: category.icon,
+      count: categoryCounts[category.id] ?? 0,
+      description: category.description ?? "",
+    })),
+  ];
+
+  const filteredPrompts = useMemo(() => {
+    const normalizedQuery = searchQuery.trim().toLowerCase();
+
+    return promptLibraryEntries.filter((entry) => {
+      const matchesCategory =
+        selectedCategory === "all" || entry.category === selectedCategory;
+
+      if (!matchesCategory) {
+        return false;
+      }
+
+      if (!normalizedQuery) {
+        return true;
+      }
+
+      const haystack = [
+        entry.title,
+        entry.description,
+        entry.promptText,
+        ...(entry.tags ?? []),
+      ]
+        .join(" \n ")
+        .toLowerCase();
+
+      return haystack.includes(normalizedQuery);
+    });
+  }, [searchQuery, selectedCategory]);
+
+  useEffect(() => {
+    const trimmed = searchQuery.trim();
+
+    if (!trimmed) {
+      return;
+    }
+
+    trackEvent("prompt_searched", {
+      query_length: trimmed.length,
+      matches: filteredPrompts.length,
+    });
+  }, [filteredPrompts.length, searchQuery]);
+
+  useEffect(() => {
+    trackEvent("prompt_library_viewed", {
+      prompt_count: promptLibraryEntries.length,
+      category_count: promptCategories.length,
+    });
+  }, []);
+
+  const handleCopyPrompt = async (entryId: string, promptText: string) => {
+    try {
+      await navigator.clipboard.writeText(promptText);
+      setCopyState((previous) => ({
+        ...previous,
+        [entryId]: "copied",
+      }));
+      trackEvent("prompt_copied", {
+        prompt_id: entryId,
+      });
+
+      window.setTimeout(() => {
+        setCopyState((previous) => ({
+          ...previous,
+          [entryId]: "idle",
+        }));
+      }, 2400);
+    } catch (error) {
+      console.error("Copy failed", error);
+      setCopyState((previous) => ({
+        ...previous,
+        [entryId]: "error",
+      }));
+
+      window.setTimeout(() => {
+        setCopyState((previous) => ({
+          ...previous,
+          [entryId]: "idle",
+        }));
+      }, 3200);
+    }
+  };
+
+  const handleCtaClick = (payload: {
+    location: string;
+    type: "primary" | "secondary" | "nav";
+    target: string;
+  }) => {
+    trackEvent("cta_clicked", payload);
+  };
 
   const handleAuthModalOpen = () => {
     trackEvent("auth_modal_open", { source: "landing-nav" });
     openAuthModal();
-  };
-
-  useEffect(() => {
-    if (typeof window === "undefined") {
-      return;
-    }
-
-    try {
-      const stored = Number.parseInt(
-        window.localStorage.getItem(PREVIEW_STORAGE_KEY) ?? "0",
-        10,
-      );
-      if (!Number.isNaN(stored)) {
-        setPreviewCount(stored);
-      } else {
-        setPreviewCount(0);
-      }
-    } catch (error) {
-      console.error("Unable to read preview count", error);
-      setPreviewCount(0);
-    }
-  }, []);
-
-  const canPreview = useMemo(() => {
-    const count = previewCount ?? 0;
-    return count < PREVIEW_LIMIT;
-  }, [previewCount]);
-
-  const remainingPreviews = useMemo(() => {
-    const count = previewCount ?? 0;
-    return Math.max(PREVIEW_LIMIT - count, 0);
-  }, [previewCount]);
-
-  const handleGenerate = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-
-    if (!canPreview || !topic.trim()) {
-      if (!canPreview) {
-        trackEvent("landing_preview_limit_hit");
-      }
-      return;
-    }
-
-    const phi = detectPhi(topic);
-    if (phi.flagged) {
-      setPhiWarning(buildWarningMessage(phi));
-      trackEvent("wizard_input_flagged", {
-        source: "landing",
-        names: phi.counts.name,
-        dates: phi.counts.date,
-        long_numbers: phi.counts.long_number,
-        total: phi.counts.total,
-      });
-    } else {
-      setPhiWarning("");
-    }
-
-    const nextPrompt = buildPreviewPrompt(topic);
-    setPreviewPrompt(nextPrompt);
-    setCopyStatus("idle");
-
-    const nextCount = (previewCount ?? 0) + 1;
-    setPreviewCount(nextCount);
-
-    try {
-      window.localStorage.setItem(PREVIEW_STORAGE_KEY, String(nextCount));
-    } catch (error) {
-      console.error("Unable to persist preview count", error);
-    }
-
-    trackEvent("landing_preview_generated", {
-      previews_used: nextCount,
-      previews_remaining: Math.max(PREVIEW_LIMIT - nextCount, 0),
-      topic_length: topic.trim().length,
-    });
-  };
-
-  const handleCopy = async () => {
-    if (!previewPrompt) {
-      return;
-    }
-
-    try {
-      await navigator.clipboard.writeText(previewPrompt);
-      setCopyStatus("success");
-      window.setTimeout(() => setCopyStatus("idle"), 2400);
-      trackEvent("landing_prompt_copied");
-    } catch (error) {
-      console.error("Copy failed", error);
-      setCopyStatus("error");
-      window.setTimeout(() => setCopyStatus("idle"), 3200);
-    }
   };
 
   const handleSignOut = async () => {
@@ -159,6 +147,18 @@ export default function LandingPage() {
       trackEvent("auth_signed_out", { source: "landing" });
     } catch (error) {
       console.error("Sign out failed", error);
+    }
+  };
+
+  const handleScrollToLibrary = () => {
+    handleCtaClick({
+      location: "hero",
+      type: "secondary",
+      target: "prompt-library",
+    });
+
+    if (promptLibraryRef.current) {
+      promptLibraryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
     }
   };
 
@@ -199,198 +199,415 @@ export default function LandingPage() {
             <Link
               href="/wizard"
               className="rounded-full border border-emerald-400 px-5 py-2 text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/60"
+              onClick={() =>
+                handleCtaClick({
+                  location: "nav",
+                  type: "nav",
+                  target: "wizard",
+                })
+              }
             >
               Skip to Wizard
             </Link>
             <Link
               href="/wizard"
               className="rounded-full bg-emerald-600 px-5 py-2 text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
+              onClick={() =>
+                handleCtaClick({
+                  location: "nav",
+                  type: "nav",
+                  target: "wizard",
+                })
+              }
             >
               Use Wizard
             </Link>
           </div>
         </nav>
 
-        <div className="grid gap-4 md:max-w-3xl">
+        <div className="grid gap-6 md:max-w-3xl">
           <span className="inline-flex w-fit items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
             Educational, not medical advice
           </span>
           <h1 className="text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
-            Craft clearer, safer AI health prompts in seconds.
+            Privacy-first healthcare prompts, ready to copy.
           </h1>
           <p className="text-lg text-slate-700 md:text-xl">
-            Mediprompt helps patients and caregivers frame questions responsibly. Try the public chatbox below, then step into the Wizard for unlimited tailored prompts.
+            Browse compliant templates that teach patients and caregivers how to talk with AI safely. Protect personal details, learn the right questions, and upgrade to the Wizard when you&apos;re ready for custom guidance.
           </p>
+          <div className="flex flex-wrap items-center gap-3">
+            <Link
+              href="/wizard"
+              className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-6 py-2.5 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
+              onClick={() =>
+                handleCtaClick({
+                  location: "hero",
+                  type: "primary",
+                  target: "wizard",
+                })
+              }
+            >
+              Build My Custom Prompt
+            </Link>
+            <button
+              type="button"
+              className="inline-flex items-center justify-center rounded-full border border-emerald-400 px-6 py-2.5 text-sm font-semibold text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/70 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+              onClick={handleScrollToLibrary}
+            >
+              Browse Free Library
+            </button>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-slate-600">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm shadow-emerald-100">
+              <span className="text-emerald-600">●</span>
+              Zero data stored
+            </span>
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/70 px-3 py-1 shadow-sm shadow-emerald-100">
+              <span className="text-emerald-600">●</span>
+              Expert-crafted prompts
+            </span>
+          </div>
         </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-16 md:px-10">
-        <section className="grid gap-8 lg:grid-cols-[minmax(0,1.25fr)_minmax(0,0.85fr)] lg:items-start">
-          <div id="mp-landing-preview-card" className="rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-lg shadow-sky-100/50 backdrop-blur md:p-8">
-            <div className="mb-6 flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold text-slate-900">
-                  Preview the prompt improver
-                </h2>
-                <p className="text-sm text-slate-600">
-                  You have {PREVIEW_LIMIT} quick demos per browser. We never store what you type.
-                </p>
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-16 md:gap-12 md:px-10 lg:gap-16">
+        <section
+          ref={promptLibraryRef}
+          id="prompt-library"
+          className="rounded-3xl border border-sky-100 bg-white/85 p-6 text-slate-800 shadow-lg shadow-sky-100/40 backdrop-blur scroll-mt-28 sm:scroll-mt-32 sm:p-8"
+        >
+          <div className="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+            <div className="grid gap-3">
+              <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">
+                Free Healthcare Prompt Library
+              </h2>
+              <p className="text-base text-slate-700">
+                Explore compliant, category-based templates crafted for patients and caregivers. Copy them as-is or use them to prepare for Wizard upgrades.
+              </p>
+            </div>
+            <div className="rounded-2xl border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+              General templates - educational only
+            </div>
+          </div>
+
+          <div className="mt-8 grid gap-6">
+            <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-wrap items-center gap-2">
+                {categoryFilters.map((filter) => {
+                  const isSelected = selectedCategory === filter.id;
+
+                  return (
+                    <button
+                      key={filter.id}
+                      type="button"
+                      className={`inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
+                        isSelected
+                          ? "border-emerald-400 bg-emerald-100/70 text-emerald-800 shadow"
+                          : "border-slate-200 bg-white/80 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                      }`}
+                      aria-pressed={isSelected}
+                      onClick={() => {
+                        if (isSelected) {
+                          return;
+                        }
+
+                        setSelectedCategory(filter.id);
+                        trackEvent("prompt_category_selected", {
+                          category_id: filter.id,
+                          category_name: filter.label,
+                        });
+                      }}
+                      title={filter.description}
+                    >
+                      <span>{filter.icon}</span>
+                      <span>{filter.label}</span>
+                      <span className="rounded-full bg-white/80 px-2 py-0.5 text-xs font-semibold text-slate-500">
+                        {filter.count}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
-              <span className="rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700">
-                {PREVIEW_LIMIT - remainingPreviews} / {PREVIEW_LIMIT} used
-              </span>
+              <form className="w-full max-w-sm" role="search" aria-label="Prompt library search">
+                <label className="sr-only" htmlFor="prompt-library-search">
+                  Search prompt library
+                </label>
+                <div className="relative">
+                  <input
+                    id="prompt-library-search"
+                    type="search"
+                    placeholder="Search prompts (e.g. medications, billing)"
+                    autoComplete="off"
+                    value={searchQuery}
+                    onChange={(event) => {
+                      setSearchQuery(event.target.value);
+                    }}
+                    className="w-full rounded-full border border-slate-200 bg-slate-50 px-5 py-2.5 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+                  />
+                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400" aria-hidden>
+                    🔍
+                  </span>
+                </div>
+              </form>
             </div>
 
-            {!canPreview && (
-              <div className="mb-6 rounded-2xl border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900">
-                <p className="font-semibold">Free preview complete</p>
-                <p>
-                  You&apos;ve reached your public demo limit. Head to the Wizard to keep generating compliant prompts anytime.
-                </p>
+            <div className="rounded-3xl border border-amber-200 bg-amber-50/80 px-4 py-3 text-sm text-amber-800">
+              Educational reminder: Do not share names, dates, ID numbers, or other personal identifiers when using these prompts. Mediprompt does not store or transmit any prompt content.
+            </div>
+
+            {filteredPrompts.length === 0 ? (
+              <div className="rounded-3xl border border-slate-200 bg-white/90 px-6 py-10 text-center text-sm text-slate-600">
+                No prompts match your filters yet. Try a different keyword or choose another category.
+              </div>
+            ) : (
+              <div className="grid gap-5 sm:gap-6 md:grid-cols-2 xl:grid-cols-3">
+                {filteredPrompts.map((entry) => {
+                  const category = promptCategories.find(
+                    (item) => item.id === entry.category,
+                  );
+
+                  return (
+                    <article
+                    key={entry.id}
+                    className="flex h-full flex-col justify-between rounded-3xl border border-slate-200 bg-white/95 p-6 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg"
+                  >
+                    <div className="mb-5 grid gap-3">
+                      <div className="flex flex-wrap items-center gap-2 text-xs font-semibold">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-slate-700">
+                          <span>{category?.icon ?? "📌"}</span>
+                          <span>{category?.name ?? "Prompt"}</span>
+                        </span>
+                        <span className="inline-flex items-center gap-2 rounded-full bg-emerald-100 px-3 py-1 text-emerald-700">
+                          General Template
+                        </span>
+                      </div>
+                      <div className="grid gap-2">
+                        <h3 className="text-lg font-semibold text-slate-900">
+                          {entry.title}
+                        </h3>
+                        <p className="text-sm text-slate-600">{entry.description}</p>
+                      </div>
+                    </div>
+
+                    <div className="relative flex-1 rounded-2xl border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-700">
+                      <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                        Prompt preview
+                      </p>
+                      <p
+                        id={`prompt-body-${entry.id}`}
+                        className={`mt-2 whitespace-pre-line leading-relaxed transition-[max-height] duration-300 ease-out ${
+                          expandedPrompts[entry.id]
+                            ? "max-h-[1200px]"
+                            : "max-h-36 overflow-hidden"
+                        }`}
+                      >
+                        {entry.promptText}
+                      </p>
+                      {!expandedPrompts[entry.id] && (
+                        <div
+                          className="pointer-events-none absolute inset-x-4 bottom-4 h-8 bg-gradient-to-t from-slate-50/90 to-slate-50/0"
+                          aria-hidden
+                        />
+                      )}
+                    </div>
+
+                    <div className="mt-5 flex flex-wrap items-center justify-between gap-3 text-xs text-slate-500">
+                      <div className="flex flex-wrap items-center gap-2">
+                        {entry.tags?.map((tag) => (
+                          <span
+                            key={tag}
+                            className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600"
+                          >
+                            #{tag}
+                          </span>
+                        ))}
+                      </div>
+                      <div className="flex flex-wrap items-center gap-2">
+                        <button
+                          type="button"
+                          className={`inline-flex items-center justify-center rounded-full border px-4 py-2 text-sm font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
+                            copyState[entry.id] === "copied"
+                              ? "border-emerald-400 bg-emerald-100/70 text-emerald-700"
+                              : copyState[entry.id] === "error"
+                                ? "border-rose-300 bg-rose-50 text-rose-600"
+                                : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                          }`}
+                          onClick={() => handleCopyPrompt(entry.id, entry.promptText)}
+                          aria-label={
+                            copyState[entry.id] === "copied"
+                              ? "Prompt copied"
+                              : copyState[entry.id] === "error"
+                                ? "Copy failed"
+                                : `Copy prompt: ${entry.title}`
+                          }
+                        >
+                          {copyState[entry.id] === "copied"
+                            ? "Copied!"
+                            : copyState[entry.id] === "error"
+                              ? "Copy failed"
+                              : "Copy prompt"}
+                        </button>
+                        <button
+                          type="button"
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                          aria-expanded={expandedPrompts[entry.id] ?? false}
+                          aria-controls={`prompt-body-${entry.id}`}
+                          onClick={() => {
+                            setExpandedPrompts((previous) => {
+                              const next = {
+                                ...previous,
+                                [entry.id]: !previous[entry.id],
+                              };
+
+                              trackEvent("prompt_expanded", {
+                                prompt_id: entry.id,
+                                expanded: next[entry.id],
+                              });
+
+                              return next;
+                            });
+                          }}
+                        >
+                          {expandedPrompts[entry.id] ? "Collapse" : "Expand"}
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                  );
+                })}
               </div>
             )}
+          </div>
+        </section>
 
-            <form id="mp-landing-preview-form" className="grid gap-5" onSubmit={handleGenerate}>
-              <div className="grid gap-2">
-                <label htmlFor="mp-topic-landing" className="text-sm font-medium text-slate-800">
-                  What health topic are you exploring?
-                </label>
-                <input
-                  id="mp-topic-landing"
-                  name="mp-topic-landing"
-                  type="text"
-                  placeholder={`E.g. ${placeholderExample}`}
-                  value={topic}
-                  onChange={(event) => {
-                    const value = event.target.value;
-                    setTopic(value);
-                    const scan = detectPhi(value);
-                    setPhiWarning(scan.flagged ? buildWarningMessage(scan) : "");
-                  }}
-                  className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                  disabled={!canPreview}
-                  required
-                />
-                {phiWarning ? (
-                  <p className="text-xs text-rose-600">{phiWarning}</p>
-                ) : (
-                  <p className="text-xs text-slate-500">
-                    Use generic terms only — no names, ID numbers, addresses, or dates.
+        <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-8 text-slate-800 shadow-lg shadow-emerald-100/40">
+          <div className="grid gap-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.9fr)] md:items-center md:gap-10">
+            <div className="grid gap-4">
+              <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">
+                Ready for prompts tailored to your exact situation?
+              </h2>
+              <p className="text-base text-slate-700">
+                These free templates stay intentionally broad so anyone can use them without sharing personal details. The Wizard upgrades your experience with context-aware questions, PHI-friendly safety checks, and unlimited prompt generation backed by the same privacy-first principles.
+              </p>
+              <ul className="grid gap-3 text-sm text-slate-700">
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
+                    1
+                  </span>
+                  <p>
+                    Guided intake captures role, goals, tone, and safe background details so every prompt feels personal without storing identifiers.
                   </p>
-                )}
-              </div>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
+                    2
+                  </span>
+                  <p>
+                    Built-in PHI scanner highlights risky phrasing before you copy, helping you keep conversations compliant across tools.
+                  </p>
+                </li>
+                <li className="flex items-start gap-3">
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
+                    3
+                  </span>
+                  <p>
+                    Unlimited prompt generation with reminders for next steps, follow-up questions, and educational context tailored to you.
+                  </p>
+                </li>
+              </ul>
+            </div>
 
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  type="submit"
-                  className="rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-                  disabled={!canPreview || !topic.trim()}
-                >
-                  Improve my prompt
-                </button>
-                <span className="text-xs text-slate-500">
-                  Remaining previews today: {remainingPreviews}
+            <div className="flex h-full flex-col justify-between rounded-3xl border border-emerald-200 bg-white/80 p-6 text-sm shadow-sm">
+              <div className="grid gap-2 text-slate-700">
+                <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+                  Upgrade in minutes
                 </span>
+                <h3 className="text-xl font-semibold text-slate-900">
+                  Wizard access • $9/month
+                </h3>
+                <p>
+                  Stripe-powered checkout. Cancel anytime. We never store payment info or prompt content.
+                </p>
               </div>
-            </form>
-
-            <div className="mt-6 grid gap-3">
-              <h3 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-                Improved prompt
-              </h3>
-              <div id="mp-landing-output" className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-800 shadow-inner">
-                {previewPrompt ? (
-                  <pre className="whitespace-pre-wrap font-sans leading-relaxed">
-                    {previewPrompt}
-                  </pre>
-                ) : (
-                  <p className="text-slate-500">
-                    Generate a sample above to see how Mediprompt reframes questions for safer AI chats.
-                  </p>
-                )}
-              </div>
-              <div className="flex flex-wrap items-center gap-3">
-                <button
-                  id="mp-landing-copy-button"
-                  type="button"
-                  onClick={handleCopy}
-                  className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-400 hover:text-emerald-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                  disabled={!previewPrompt}
+              <div className="mt-6 grid gap-3">
+                <Link
+                  href="/wizard"
+                  className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700"
+                  onClick={() =>
+                    handleCtaClick({
+                      location: "transition",
+                      type: "primary",
+                      target: "wizard",
+                    })
+                  }
                 >
-                  {copyStatus === "success"
-                    ? "Copied!"
-                    : copyStatus === "error"
-                      ? "Copy failed"
-                      : "Copy prompt"}
-                </button>
+                  Unlock the Wizard
+                </Link>
                 <p className="text-xs text-slate-500">
-                  This stays on your device — nothing is sent to our servers.
+                  Educational use only. Avoid sharing names, numbers, or other personal identifiers in any prompt.
                 </p>
               </div>
             </div>
           </div>
+        </section>
 
-          <aside className="flex flex-col gap-6 text-sm text-slate-700">
-            <div className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-6 shadow-sm">
-              <h3 className="mb-2 text-lg font-semibold text-emerald-900">
-                Why the Wizard unlocks more
-              </h3>
-              <ul className="grid gap-3">
-                <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow">1</span>
-                  <p>
-                    Guided form captures context like role, goals, and safe background details for richer prompts.
-                  </p>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow">2</span>
-                  <p>
-                    Subscribers get unlimited prompts, reminders for next steps, and compliance cues across every response.
-                  </p>
-                </li>
-                <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-white text-emerald-700 shadow">3</span>
-                  <p>
-                    Stripe-powered checkout — cancel anytime. We never store payment or prompt content.
-                  </p>
-                </li>
-              </ul>
-            </div>
+        <section className="rounded-3xl border border-slate-100 bg-white/85 p-8 text-slate-800 shadow-lg shadow-slate-100/40">
+          <div className="mb-6 flex flex-col gap-3 text-center">
+            <span className="text-xs font-semibold uppercase tracking-wide text-emerald-600">
+              Why patients trust Mediprompt
+            </span>
+            <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">
+              Built for privacy, empathy, and clarity
+            </h2>
+            <p className="mx-auto max-w-2xl text-sm text-slate-600">
+              Every template balances clinical caution with plain-language education so you stay in control of your health conversations.
+            </p>
+          </div>
 
-            <div className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-              <h3 className="mb-2 text-base font-semibold text-slate-900">
-                Data discipline at every step
-              </h3>
-              <ul className="grid gap-2">
-                <li>• No PHI collected, logged, or stored.</li>
-                <li>• Local two-preview cap — enforced only in your browser.</li>
-                <li>• Educational framing across the app and emails.</li>
-              </ul>
-            </div>
-
-            <div className="rounded-3xl border border-sky-100 bg-sky-50/80 p-6 shadow-sm">
-              <h3 className="mb-2 text-base font-semibold text-slate-900">
-                Ready for tailored prompts?
-              </h3>
-              <p className="mb-4 text-sm">
-                Jump into the Wizard to unlock structured inputs, personalized tone, and unlimited prompt generation for $9/month.
+          <div className="grid gap-6 md:grid-cols-3">
+            <article className="flex flex-col gap-3 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-6 text-left shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl">🔒</span>
+                <h3 className="text-lg font-semibold text-emerald-900">Privacy First</h3>
+              </div>
+              <p className="text-sm text-emerald-800">
+                Static prompts mean no chats are stored, tracked, or shared. PHI reminders sit beside every CTA so it&apos;s easy to keep personal data offline.
               </p>
-              <Link
-                href="/wizard"
-                className="inline-flex w-full items-center justify-center rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-emerald-700"
-              >
-                Open the Wizard
-              </Link>
-            </div>
-          </aside>
+            </article>
+
+            <article className="flex flex-col gap-3 rounded-2xl border border-sky-100 bg-sky-50/80 p-6 text-left shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl">🎓</span>
+                <h3 className="text-lg font-semibold text-sky-900">Expertise Driven</h3>
+              </div>
+              <p className="text-sm text-sky-800">
+                Prompts reference evidence-informed communication best practices and include actionable questions you can confirm with your care team.
+              </p>
+            </article>
+
+            <article className="flex flex-col gap-3 rounded-2xl border border-slate-200 bg-white p-6 text-left shadow-sm">
+              <div className="flex items-center gap-3">
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-700">✨</span>
+                <h3 className="text-lg font-semibold text-slate-900">Simple to Use</h3>
+              </div>
+              <p className="text-sm text-slate-700">
+                Copy-ready structure, future-friendly filters, and upgrade cues make it easy to browse now and unlock tailored prompts whenever you need them.
+              </p>
+            </article>
+          </div>
         </section>
       </main>
 
       <footer className="border-t border-slate-200 bg-white/70">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between md:px-10">
-          <p className="max-w-xl">
-            Mediprompt is educational only and does not provide medical advice, diagnoses, or treatment. Always consult a licensed clinician for personal care decisions.
-          </p>
+          <div className="max-w-xl space-y-2">
+            <p>
+              Mediprompt is educational only — not medical advice, diagnoses, or treatment. We are not a HIPAA covered entity and never store prompt content or personal identifiers.
+            </p>
+            <p>
+              Avoid sharing names, dates, ID numbers, or other PHI when using prompts. Always consult a licensed clinician for care decisions.
+            </p>
+          </div>
           <div className="flex flex-wrap gap-4 font-medium text-slate-600">
             <Link href="/privacy" className="hover:text-emerald-600">
               Privacy
