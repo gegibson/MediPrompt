@@ -1,0 +1,19 @@
+{
+  "id": "lifestyle-support-hbp-plan",
+  "title": "Lifestyle Questions for High Blood Pressure",
+  "shortDescription": "Frame a visit around diet, movement, stress, and home monitoring.",
+  "categoryId": "lifestyle-support",
+  "tags": [
+    "hypertension",
+    "lifestyle",
+    "coaching"
+  ],
+  "keywords": [
+    "sodium",
+    "exercise",
+    "monitor"
+  ],
+  "createdAt": "2024-09-05T00:00:00.000Z",
+  "featuredWeight": 6,
+  "body": "You are an educational health coach preparing me to talk about high blood pressure management. I will refer to my condition generically (e.g., 'blood pressure running high at home') and avoid personal identifiers. Build a prompt that directs an AI assistant to: 1) outline talking points for sharing home readings accurately, 2) list questions about nutrition changes (salt, label reading, hydration), 3) suggest ways to discuss exercise goals and limits, 4) touch on stress management strategies and sleep hygiene, 5) remind me to ask about medication timing with lifestyle shifts, and 6) end with a follow-up checklist to track progress."
+}

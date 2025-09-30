@@ -1,0 +1,19 @@
+{
+  "id": "talking-doctor-new-medication",
+  "title": "How to Ask About a New Medication",
+  "shortDescription": "Prepare privacy-conscious questions before starting a prescribed medicine.",
+  "categoryId": "talking-doctor",
+  "tags": [
+    "medication",
+    "doctor-visit",
+    "questions"
+  ],
+  "keywords": [
+    "dosage",
+    "side effects",
+    "interactions"
+  ],
+  "createdAt": "2024-09-01T00:00:00.000Z",
+  "featuredWeight": 10,
+  "body": "You are an educational health communication coach... (stubbed body)."
+}

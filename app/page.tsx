@@ -3,132 +3,17 @@
 import Link from "next/link";
 import {
   type MouseEvent as ReactMouseEvent,
-  useEffect,
-  useMemo,
   useRef,
-  useState,
 } from "react";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
+import { LibraryShell } from "@/components/library/LibraryShell";
 import { trackEvent } from "@/lib/analytics/track";
-import {
-  promptCategories,
-  promptLibraryEntries,
-} from "@/lib/promptLibrary";
+import { isLibraryEnabled } from "@/lib/library/flags";
 
 export default function LandingPage() {
   const { user, supabase, openAuthModal, loading } = useAuthContext();
-  const categoryCounts = promptLibraryEntries.reduce<Record<string, number>>(
-    (acc, entry) => {
-      acc[entry.category] = (acc[entry.category] ?? 0) + 1;
-      return acc;
-    },
-    {},
-  );
-
-  const [selectedCategory, setSelectedCategory] = useState<string>("all");
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [copyState, setCopyState] = useState<Record<string, "idle" | "copied" | "error">>({});
-  const [expandedPrompts, setExpandedPrompts] = useState<Record<string, boolean>>({});
   const promptLibraryRef = useRef<HTMLElement | null>(null);
-
-  const categoryFilters = [
-    {
-      id: "all",
-      label: "All Prompts",
-      icon: "✨",
-      count: promptLibraryEntries.length,
-      description: "Browse every general template in one view.",
-    },
-    ...promptCategories.map((category) => ({
-      id: category.id,
-      label: category.name,
-      icon: category.icon,
-      count: categoryCounts[category.id] ?? 0,
-      description: category.description ?? "",
-    })),
-  ];
-
-  const filteredPrompts = useMemo(() => {
-    const normalizedQuery = searchQuery.trim().toLowerCase();
-
-    return promptLibraryEntries.filter((entry) => {
-      const matchesCategory =
-        selectedCategory === "all" || entry.category === selectedCategory;
-
-      if (!matchesCategory) {
-        return false;
-      }
-
-      if (!normalizedQuery) {
-        return true;
-      }
-
-      const haystack = [
-        entry.title,
-        entry.description,
-        entry.promptText,
-        ...(entry.tags ?? []),
-      ]
-        .join(" \n ")
-        .toLowerCase();
-
-      return haystack.includes(normalizedQuery);
-    });
-  }, [searchQuery, selectedCategory]);
-
-  useEffect(() => {
-    const trimmed = searchQuery.trim();
-
-    if (!trimmed) {
-      return;
-    }
-
-    trackEvent("prompt_searched", {
-      query_length: trimmed.length,
-      matches: filteredPrompts.length,
-    });
-  }, [filteredPrompts.length, searchQuery]);
-
-  useEffect(() => {
-    trackEvent("prompt_library_viewed", {
-      prompt_count: promptLibraryEntries.length,
-      category_count: promptCategories.length,
-    });
-  }, []);
-
-  const handleCopyPrompt = async (entryId: string, promptText: string) => {
-    try {
-      await navigator.clipboard.writeText(promptText);
-      setCopyState((previous) => ({
-        ...previous,
-        [entryId]: "copied",
-      }));
-      trackEvent("prompt_copied", {
-        prompt_id: entryId,
-      });
-
-      window.setTimeout(() => {
-        setCopyState((previous) => ({
-          ...previous,
-          [entryId]: "idle",
-        }));
-      }, 2400);
-    } catch (error) {
-      console.error("Copy failed", error);
-      setCopyState((previous) => ({
-        ...previous,
-        [entryId]: "error",
-      }));
-
-      window.setTimeout(() => {
-        setCopyState((previous) => ({
-          ...previous,
-          [entryId]: "idle",
-        }));
-      }, 3200);
-    }
-  };
 
   const handleCtaClick = (payload: {
     location: string;
@@ -270,213 +155,44 @@ export default function LandingPage() {
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 pb-12 sm:px-6 sm:pb-14 md:gap-10 md:px-10 md:pb-16 lg:gap-14">
+        {isLibraryEnabled() ? (
         <section
           ref={promptLibraryRef}
           id="prompt-library"
           className="rounded-3xl border border-sky-100 bg-white/85 p-4 text-slate-800 shadow-lg shadow-sky-100/40 backdrop-blur scroll-mt-20 sm:scroll-mt-24 sm:p-6 md:p-7"
         >
-          <div className="flex flex-col gap-1.25 md:flex-row md:items-center md:justify-between md:gap-2">
-            <div className="grid gap-1">
-              <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                <h2 className="text-[1.55rem] font-semibold leading-tight text-slate-900 sm:text-[1.6rem] md:text-[1.75rem]">
-                  Healthcare Library
-                </h2>
-                <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-                  General templates • educational only
-                </span>
-              </div>
+          <LibraryShell />
+        </section>
+        ) : (
+        <section
+          id="prompt-library"
+          className="rounded-3xl border border-slate-200 bg-white/85 p-6 text-slate-800 shadow-sm scroll-mt-20 sm:p-7 md:p-8"
+        >
+          <div className="text-center">
+            <h2 className="text-[1.55rem] font-semibold leading-tight text-slate-900 sm:text-[1.6rem] md:text-[1.75rem]">
+              Healthcare Library
+            </h2>
+            <p className="mt-2 text-[13px] text-slate-600 sm:text-sm">
+              Library coming soon. Use the Wizard to build a custom prompt in the meantime.
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/wizard"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:px-5 sm:py-2.5"
+                onClick={() =>
+                  handleCtaClick({
+                    location: "placeholder",
+                    type: "primary",
+                    target: "wizard",
+                  })
+                }
+              >
+                Open Wizard
+              </Link>
             </div>
-          </div>
-
-          <div className="mt-3.5 grid gap-3 sm:gap-3.5">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-              <div className="-mx-1 overflow-x-auto pb-1 sm:mx-0 sm:overflow-visible sm:pb-0">
-                <div className="flex w-max items-center gap-1.25 px-1 sm:w-auto sm:flex-wrap sm:px-0">
-                  {categoryFilters.map((filter) => {
-                    const isSelected = selectedCategory === filter.id;
-
-                    return (
-                      <button
-                        key={filter.id}
-                        type="button"
-                        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.25 text-[12.5px] font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
-                          isSelected
-                            ? "border-emerald-400 bg-emerald-100/70 text-emerald-800 shadow"
-                            : "border-slate-200 bg-white/80 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
-                        }`}
-                        aria-pressed={isSelected}
-                        onClick={() => {
-                          if (isSelected) {
-                            return;
-                          }
-
-                          setSelectedCategory(filter.id);
-                          trackEvent("prompt_category_selected", {
-                            category_id: filter.id,
-                            category_name: filter.label,
-                          });
-                        }}
-                        title={filter.description}
-                      >
-                        <span className="text-base leading-none">{filter.icon}</span>
-                        <span>{filter.label}</span>
-                        <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
-                          {filter.count}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-              <form className="w-full max-w-sm" role="search" aria-label="Prompt library search">
-                <label className="sr-only" htmlFor="prompt-library-search">
-                  Search prompt library
-                </label>
-                <div className="relative">
-                  <input
-                    id="prompt-library-search"
-                    type="search"
-                    placeholder="Search prompts (e.g. medications, billing)"
-                    autoComplete="off"
-                    value={searchQuery}
-                    onChange={(event) => {
-                      setSearchQuery(event.target.value);
-                    }}
-                    className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-1.75 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                  />
-                  <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400" aria-hidden>
-                    🔍
-                  </span>
-                </div>
-              </form>
-            </div>
-
-            {filteredPrompts.length === 0 ? (
-              <div className="rounded-3xl border border-slate-200 bg-white/90 px-6 py-9 text-center text-sm text-slate-600">
-                No prompts match your filters yet. Try a different keyword or choose another category.
-              </div>
-            ) : (
-              <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2 sm:gap-3.5 md:gap-4 md:[&>article]:max-w-[360px] md:justify-center xl:grid-cols-3 xl:justify-start xl:[&>article]:max-w-[330px]">
-                {filteredPrompts.map((entry) => {
-                  const category = promptCategories.find(
-                    (item) => item.id === entry.category,
-                  );
-
-                  return (
-                    <article
-                      key={entry.id}
-                      className="flex h-full flex-col justify-between rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none"
-                  >
-                    <div className="mb-3 grid gap-1.75">
-                      <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-slate-700">
-                          <span>{category?.icon ?? "📌"}</span>
-                          <span>{category?.name ?? "Prompt"}</span>
-                        </span>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-emerald-700">
-                          General Template
-                        </span>
-                      </div>
-                      <div className="grid gap-1.5">
-                        <h3 className="text-[1.05rem] font-semibold leading-snug text-slate-900">
-                          {entry.title}
-                        </h3>
-                        <p className="text-[12px] leading-snug text-slate-600">
-                          {entry.description}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="relative flex-1 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-[12px] leading-relaxed text-slate-700">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">
-                        Prompt preview
-                      </p>
-                      <p
-                        id={`prompt-body-${entry.id}`}
-                        className={`mt-2 whitespace-pre-line transition-[max-height] duration-300 ease-out ${
-                          expandedPrompts[entry.id]
-                            ? "max-h-[1200px]"
-                            : "max-h-32 overflow-hidden"
-                        }`}
-                      >
-                        {entry.promptText}
-                      </p>
-                      {!expandedPrompts[entry.id] && (
-                        <div
-                          className="pointer-events-none absolute inset-x-3.5 bottom-3.5 h-7 bg-gradient-to-t from-slate-50/90 to-slate-50/0"
-                          aria-hidden
-                        />
-                      )}
-                    </div>
-
-                    <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
-                      <div className="flex flex-wrap items-center gap-1">
-                        {entry.tags?.map((tag) => (
-                          <span
-                            key={tag}
-                            className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 lowercase text-slate-600"
-                          >
-                            #{tag}
-                          </span>
-                        ))}
-                      </div>
-                      <div className="flex flex-wrap items-center gap-1.5 text-[11px] normal-case">
-                        <button
-                          type="button"
-                          className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
-                            copyState[entry.id] === "copied"
-                              ? "border-emerald-400 bg-emerald-100/70 text-emerald-700"
-                              : copyState[entry.id] === "error"
-                                ? "border-rose-300 bg-rose-50 text-rose-600"
-                                : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
-                          }`}
-                          onClick={() => handleCopyPrompt(entry.id, entry.promptText)}
-                          aria-label={
-                            copyState[entry.id] === "copied"
-                              ? "Prompt copied"
-                              : copyState[entry.id] === "error"
-                                ? "Copy failed"
-                                : `Copy prompt: ${entry.title}`
-                          }
-                        >
-                          {copyState[entry.id] === "copied"
-                            ? "Copied!"
-                            : copyState[entry.id] === "error"
-                              ? "Copy failed"
-                              : "Copy prompt"}
-                        </button>
-                        <button
-                          type="button"
-                          className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                          aria-expanded={expandedPrompts[entry.id] ?? false}
-                          aria-controls={`prompt-body-${entry.id}`}
-                          onClick={() => {
-                            setExpandedPrompts((previous) => {
-                              const next = {
-                                ...previous,
-                                [entry.id]: !previous[entry.id],
-                              };
-
-                              trackEvent("prompt_expanded", {
-                                prompt_id: entry.id,
-                                expanded: next[entry.id],
-                              });
-
-                              return next;
-                            });
-                          }}
-                        >
-                          {expandedPrompts[entry.id] ? "Collapse" : "Expand"}
-                        </button>
-                      </div>
-                    </div>
-                  </article>
-                  );
-                })}
-              </div>
-            )}
           </div>
         </section>
+        )}
 
         <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6 text-slate-800 shadow-lg shadow-emerald-100/40 sm:p-7 md:p-8">
           <div className="grid gap-5 sm:gap-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.9fr)] md:items-center md:gap-8 lg:gap-10">

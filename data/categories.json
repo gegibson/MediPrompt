@@ -1,0 +1,62 @@
+[
+  {
+    "id": "talking-doctor",
+    "name": "Talking to Your Doctor",
+    "icon": "🩺",
+    "description": "Guides for respectful, productive conversations during clinical visits."
+  },
+  {
+    "id": "insurance-billing",
+    "name": "Insurance & Billing",
+    "icon": "📄",
+    "description": "Plain-language tools for navigating statements and coverage steps."
+  },
+  {
+    "id": "medication-management",
+    "name": "Medication Management",
+    "icon": "💊",
+    "description": "Questions that help review dosages, schedules, and side effects safely."
+  },
+  {
+    "id": "chronic-conditions",
+    "name": "Chronic Conditions",
+    "icon": "♾️",
+    "description": "Support for long-term condition monitoring and care plan check-ins."
+  },
+  {
+    "id": "symptom-tracking",
+    "name": "Symptom Tracking",
+    "icon": "📈",
+    "description": "Prompts for logging symptoms and spotting patterns to share with clinicians."
+  },
+  {
+    "id": "mental-health",
+    "name": "Mental Health",
+    "icon": "🧠",
+    "description": "Conversation starters for therapy sessions and emotional wellbeing check-ins."
+  },
+  {
+    "id": "recovery-support",
+    "name": "Recovery Support",
+    "icon": "🛌",
+    "description": "Guidance for post-procedure recovery discussions and pain management."
+  },
+  {
+    "id": "pediatrics",
+    "name": "Pediatrics",
+    "icon": "🧸",
+    "description": "Caregiver prompts for pediatric symptoms and follow-up questions."
+  },
+  {
+    "id": "lifestyle-support",
+    "name": "Lifestyle Support",
+    "icon": "🥗",
+    "description": "Lifestyle and habit prompts that complement medical recommendations."
+  },
+  {
+    "id": "diagnostics-prep",
+    "name": "Diagnostics Prep",
+    "icon": "🔬",
+    "description": "Templates for preparing questions about imaging, labs, or upcoming tests."
+  }
+]

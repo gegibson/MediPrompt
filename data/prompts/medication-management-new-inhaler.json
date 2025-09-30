@@ -1,0 +1,11 @@
+{
+  "id": "medication-management-new-inhaler",
+  "title": "Reviewing a New Asthma Inhaler",
+  "shortDescription": "Clarify dosing, timing, and technique for a recently prescribed inhaler.",
+  "categoryId": "medication-management",
+  "tags": ["asthma", "medication", "inhaler"],
+  "keywords": ["asthma", "controller", "rescue"],
+  "createdAt": "2024-09-15T00:00:00.000Z",
+  "featuredWeight": 9,
+  "body": "You are an educational asthma coach helping me prepare for an appointment about a newly prescribed inhaler. I will only use generic descriptions such as 'daily controller inhaler' or 'rescue inhaler' and will not share names, dates of birth, or other identifiers. Please create a prompt that guides an AI assistant to: 1) explain the purpose of the inhaler in plain language, 2) outline technique reminders (priming, breath hold, spacer use), 3) list questions about dosing frequency and what to do if a dose is missed, 4) provide prompts for discussing side effects like throat irritation or jitters, 5) include reminders to review step-by-step action plans for asthma flares, and 6) finish with a short checklist I can bring to the visit."
+}

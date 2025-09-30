@@ -1,0 +1,11 @@
+{
+  "id": "insurance-prior-auth",
+  "title": "Navigating Prior Authorization",
+  "shortDescription": "Plan questions for insurer, clinician, and pharmacy.",
+  "categoryId": "insurance-billing",
+  "tags": ["insurance", "authorization"],
+  "keywords": ["appeal", "coverage"],
+  "createdAt": "2024-09-10T00:00:00.000Z",
+  "featuredWeight": 6,
+  "body": "You are an educational authorization navigator... (stubbed body)."
+}

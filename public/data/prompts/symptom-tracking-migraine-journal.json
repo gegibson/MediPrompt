@@ -1,0 +1,19 @@
+{
+  "id": "symptom-tracking-migraine-journal",
+  "title": "Migraine Symptom Tracking Template",
+  "shortDescription": "Create a log to capture triggers, severity, and relief strategies.",
+  "categoryId": "symptom-tracking",
+  "tags": [
+    "migraine",
+    "symptom-log",
+    "neurology"
+  ],
+  "keywords": [
+    "headache",
+    "trigger",
+    "aura"
+  ],
+  "createdAt": "2024-09-18T00:00:00.000Z",
+  "featuredWeight": 7,
+  "body": "You are an educational migraine tracker helping me organize information to share with my clinician. I will describe attacks generically (e.g., 'three migraines this month with visual aura') and will not include personal identifiers. Produce a prompt that guides an AI assistant to: 1) structure a daily log capturing onset time, severity, possible triggers, and relief steps, 2) summarize patterns across weeks, 3) suggest questions about preventive vs. rescue medication use, 4) include prompts for discussing lifestyle factors like hydration and screen breaks, 5) remind me to note warning signs needing urgent attention, and 6) provide a short checklist to review before appointments."
+}

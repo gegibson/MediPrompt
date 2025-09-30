@@ -1,0 +1,11 @@
+{
+  "id": "chronic-conditions-autoimmune-flare",
+  "title": "Autoimmune Flare Self-Monitoring",
+  "shortDescription": "Capture flare patterns, triggers, and questions for a rheumatology follow-up.",
+  "categoryId": "chronic-conditions",
+  "tags": ["autoimmune", "flare", "rheumatology"],
+  "keywords": ["fatigue", "joints", "flare"],
+  "createdAt": "2024-09-19T00:00:00.000Z",
+  "featuredWeight": 7,
+  "body": "You are an educational rheumatology guide supporting tracking of autoimmune flares. I will use general descriptions such as 'joint stiffness flare' and will not provide identifiers. Compose a prompt for an AI assistant that: 1) structures daily symptom logging (pain, swelling, fatigue), 2) relates possible triggers like weather or stress, 3) lists questions about medication adjustments or bridging therapy, 4) highlights warning signs needing urgent contact, 5) encourages documenting impact on daily activities, and 6) wraps with a checklist for labs, imaging, or refills to request."
+}

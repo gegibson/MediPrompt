@@ -1,0 +1,22 @@
+export type LibraryCategory = {
+  id: string;
+  name: string;
+  icon: string; // emoji or icon ref
+  description?: string;
+};
+
+export type PromptIndexItem = {
+  id: string;
+  title: string;
+  shortDescription: string;
+  categoryId: string;
+  tags?: string[];
+  keywords?: string[];
+  createdAt?: string; // ISO
+  featuredWeight?: number;
+};
+
+export type PromptBody = PromptIndexItem & {
+  body: string; // full content
+};
+

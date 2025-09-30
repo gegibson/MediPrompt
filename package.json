@@ -11,7 +11,8 @@
     "check:setup": "node ./scripts/check-setup.mjs",
     "perf:check": "node ./scripts/perf-check.mjs",
     "verify:transport": "node ./scripts/verify-transport.mjs",
-    "stripe:listen": "bash ./scripts/stripe-webhook.sh"
+    "stripe:listen": "bash ./scripts/stripe-webhook.sh",
+    "library:build-index": "node ./scripts/build-library-index.mjs"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",

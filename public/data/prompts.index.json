@@ -1,0 +1,216 @@
+[
+  {
+    "id": "talking-doctor-new-medication",
+    "title": "How to Ask About a New Medication",
+    "shortDescription": "Prepare privacy-conscious questions before starting a prescribed medicine.",
+    "categoryId": "talking-doctor",
+    "tags": [
+      "medication",
+      "doctor-visit",
+      "questions"
+    ],
+    "keywords": [
+      "dosage",
+      "side effects",
+      "interactions"
+    ],
+    "createdAt": "2024-09-01T00:00:00.000Z",
+    "featuredWeight": 10
+  },
+  {
+    "id": "medication-management-new-inhaler",
+    "title": "Reviewing a New Asthma Inhaler",
+    "shortDescription": "Clarify dosing, timing, and technique for a recently prescribed inhaler.",
+    "categoryId": "medication-management",
+    "tags": [
+      "asthma",
+      "medication",
+      "inhaler"
+    ],
+    "keywords": [
+      "asthma",
+      "controller",
+      "rescue"
+    ],
+    "createdAt": "2024-09-15T00:00:00.000Z",
+    "featuredWeight": 9
+  },
+  {
+    "id": "recovery-support-post-surgery-pain",
+    "title": "Post-Surgery Pain Management Check-In",
+    "shortDescription": "Prepare questions about medication schedules, red flags, and recovery goals.",
+    "categoryId": "recovery-support",
+    "tags": [
+      "post-op",
+      "pain",
+      "recovery"
+    ],
+    "keywords": [
+      "surgery",
+      "pain scale",
+      "healing"
+    ],
+    "createdAt": "2024-09-20T00:00:00.000Z",
+    "featuredWeight": 8
+  },
+  {
+    "id": "chronic-conditions-diabetes-adjustment",
+    "title": "Discussing Diabetes Medication Adjustments",
+    "shortDescription": "Plan a conversation about tweaking doses after glucose trends change.",
+    "categoryId": "chronic-conditions",
+    "tags": [
+      "diabetes",
+      "medication",
+      "follow-up"
+    ],
+    "keywords": [
+      "glucose",
+      "dose",
+      "trend"
+    ],
+    "createdAt": "2024-09-12T00:00:00.000Z",
+    "featuredWeight": 8
+  },
+  {
+    "id": "medication-management-side-effect-review",
+    "title": "Reviewing Possible Medication Side Effects",
+    "shortDescription": "Organize observations about new symptoms that may be related to treatment.",
+    "categoryId": "medication-management",
+    "tags": [
+      "side effects",
+      "medication",
+      "follow-up"
+    ],
+    "keywords": [
+      "adverse",
+      "symptom",
+      "timing"
+    ],
+    "createdAt": "2024-09-25T00:00:00.000Z",
+    "featuredWeight": 7
+  },
+  {
+    "id": "chronic-conditions-autoimmune-flare",
+    "title": "Autoimmune Flare Self-Monitoring",
+    "shortDescription": "Capture flare patterns, triggers, and questions for a rheumatology follow-up.",
+    "categoryId": "chronic-conditions",
+    "tags": [
+      "autoimmune",
+      "flare",
+      "rheumatology"
+    ],
+    "keywords": [
+      "fatigue",
+      "joints",
+      "flare"
+    ],
+    "createdAt": "2024-09-19T00:00:00.000Z",
+    "featuredWeight": 7
+  },
+  {
+    "id": "symptom-tracking-migraine-journal",
+    "title": "Migraine Symptom Tracking Template",
+    "shortDescription": "Create a log to capture triggers, severity, and relief strategies.",
+    "categoryId": "symptom-tracking",
+    "tags": [
+      "migraine",
+      "symptom-log",
+      "neurology"
+    ],
+    "keywords": [
+      "headache",
+      "trigger",
+      "aura"
+    ],
+    "createdAt": "2024-09-18T00:00:00.000Z",
+    "featuredWeight": 7
+  },
+  {
+    "id": "pediatrics-fever-followup",
+    "title": "Pediatric Fever Follow-Up Questions",
+    "shortDescription": "Support caregivers in summarizing symptoms and next steps for a child’s fever.",
+    "categoryId": "pediatrics",
+    "tags": [
+      "pediatrics",
+      "fever",
+      "caregiver"
+    ],
+    "keywords": [
+      "child",
+      "temperature",
+      "hydration"
+    ],
+    "createdAt": "2024-09-08T00:00:00.000Z",
+    "featuredWeight": 7
+  },
+  {
+    "id": "diagnostics-prep-imaging-discussion",
+    "title": "Preparing for Imaging Results Discussion",
+    "shortDescription": "Plan questions about what an upcoming scan might show and next steps.",
+    "categoryId": "diagnostics-prep",
+    "tags": [
+      "imaging",
+      "radiology",
+      "results"
+    ],
+    "keywords": [
+      "scan",
+      "report",
+      "follow up"
+    ],
+    "createdAt": "2024-09-23T00:00:00.000Z",
+    "featuredWeight": 6
+  },
+  {
+    "id": "mental-health-therapy-checkin",
+    "title": "Preparing for a Therapy Check-In",
+    "shortDescription": "Outline feelings, triggers, and coping tools for an upcoming mental health session.",
+    "categoryId": "mental-health",
+    "tags": [
+      "therapy",
+      "mental health",
+      "reflection"
+    ],
+    "keywords": [
+      "mood",
+      "coping",
+      "goals"
+    ],
+    "createdAt": "2024-09-22T00:00:00.000Z",
+    "featuredWeight": 6
+  },
+  {
+    "id": "insurance-prior-auth",
+    "title": "Navigating Prior Authorization",
+    "shortDescription": "Plan questions for insurer, clinician, and pharmacy.",
+    "categoryId": "insurance-billing",
+    "tags": [
+      "insurance",
+      "authorization"
+    ],
+    "keywords": [
+      "appeal",
+      "coverage"
+    ],
+    "createdAt": "2024-09-10T00:00:00.000Z",
+    "featuredWeight": 6
+  },
+  {
+    "id": "lifestyle-support-hbp-plan",
+    "title": "Lifestyle Questions for High Blood Pressure",
+    "shortDescription": "Frame a visit around diet, movement, stress, and home monitoring.",
+    "categoryId": "lifestyle-support",
+    "tags": [
+      "hypertension",
+      "lifestyle",
+      "coaching"
+    ],
+    "keywords": [
+      "sodium",
+      "exercise",
+      "monitor"
+    ],
+    "createdAt": "2024-09-05T00:00:00.000Z",
+    "featuredWeight": 6
+  }
+]

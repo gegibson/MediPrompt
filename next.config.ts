@@ -76,10 +76,20 @@ const nextConfig: NextConfig = {
       // Avoid strict CSP in development to prevent dev overlay/script blocking.
       return [];
     }
+
     return [
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/data/:path*",
+        headers: [
+          {
+            key: "Cache-Control",
+            value: "public, max-age=300, s-maxage=600, stale-while-revalidate=900",
+          },
+        ],
       },
     ];
   },
