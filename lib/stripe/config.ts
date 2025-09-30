@@ -7,6 +7,7 @@ export const stripePriceId = env("STRIPE_PRICE_ID");
 export const stripeWebhookSecret = env("STRIPE_WEBHOOK_SECRET");
 export const stripeCheckoutSuccessUrl = env("STRIPE_CHECKOUT_SUCCESS_URL");
 export const stripeCheckoutCancelUrl = env("STRIPE_CHECKOUT_CANCEL_URL");
+export const stripeBillingPortalReturnUrl = env("STRIPE_BILLING_PORTAL_RETURN_URL");
 
 export function isStripeCheckoutConfigured() {
   return Boolean(stripeSecretKey && stripePriceId);
