@@ -238,14 +238,11 @@ export default function LandingPage() {
         </nav>
 
         <div className="grid gap-3 md:max-w-2xl md:gap-4">
-          <span className="inline-flex w-fit items-center gap-1.5 rounded-full bg-emerald-100 px-2 py-0.5 text-[9.5px] font-semibold uppercase tracking-[0.2em] text-emerald-700 sm:text-[10px]">
-            Educational, not medical advice
-          </span>
           <h1 className="text-[2.05rem] font-semibold leading-[1.15] tracking-tight text-slate-900 sm:text-[2.15rem] md:text-[2.4rem] lg:text-[2.6rem]">
-            Privacy-first healthcare prompts, ready to copy.
+            Get the Healthcare Answers You Need from AI
           </h1>
           <p className="text-[13.5px] leading-snug text-slate-700 sm:text-sm md:text-base">
-            Browse compliant templates that keep conversations educational, privacy-conscious, and ready for instant use.
+            Clinician-designed questions to improve AI responses, such as ChatGPT.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Link
@@ -269,16 +266,6 @@ export default function LandingPage() {
               Browse Free Library
             </Link>
           </div>
-          <div className="flex flex-wrap items-center gap-1.25 text-[10px] font-semibold text-slate-600 sm:gap-1.5 sm:text-[10.5px] md:text-[11px]">
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 shadow-sm shadow-emerald-100">
-              <span className="text-emerald-600">●</span>
-              Zero data stored
-            </span>
-            <span className="inline-flex items-center gap-1.5 rounded-full bg-white/70 px-2 py-0.5 shadow-sm shadow-emerald-100">
-              <span className="text-emerald-600">●</span>
-              Expert-crafted prompts
-            </span>
-          </div>
         </div>
       </header>
 
@@ -292,15 +279,12 @@ export default function LandingPage() {
             <div className="grid gap-1">
               <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
                 <h2 className="text-[1.55rem] font-semibold leading-tight text-slate-900 sm:text-[1.6rem] md:text-[1.75rem]">
-                  Free Healthcare Prompt Library
+                  Healthcare Library
                 </h2>
                 <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
                   General templates • educational only
                 </span>
               </div>
-              <p className="max-w-2xl text-[12.5px] text-slate-600 sm:text-[13px] md:text-sm">
-                Compliant templates organized by care scenario — copy them instantly or personalize further in the Wizard.
-              </p>
             </div>
           </div>
 
@@ -365,10 +349,6 @@ export default function LandingPage() {
                   </span>
                 </div>
               </form>
-            </div>
-
-            <div className="rounded-3xl border border-amber-200 bg-amber-50/80 px-4 py-2 text-[11.5px] text-amber-800 sm:text-[12.5px] md:text-sm">
-              Educational reminder: Do not share names, dates, ID numbers, or other personal identifiers when using these prompts. Mediprompt does not store or transmit any prompt content.
             </div>
 
             {filteredPrompts.length === 0 ? (
