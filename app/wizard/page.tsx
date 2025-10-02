@@ -1,22 +1,41 @@
 "use client";
 
 import Link from "next/link";
-import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  Suspense,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type FormEvent,
+} from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import { trackEvent } from "@/lib/analytics/track";
 import { detectPhi, buildWarningMessage } from "@/lib/safety/phiGuard";
+import {
+  Answers,
+  Question,
+  RedFlag,
+  TriageTemplate,
+} from "@/lib/wizard/schema/types";
+import {
+  wizardTemplateList,
+  wizardTemplates,
+  WizardTemplateId,
+} from "@/lib/wizard/templates";
+import { evaluateRedFlags } from "@/lib/wizard/engine/redflags";
+import { buildPrompt } from "@/lib/wizard/engine/buildPrompt";
+import {
+  formatGuidanceForCopy,
+  type GuidanceSections,
+} from "@/lib/wizard/engine/buildGuidance";
+import { sanitizeFreeText } from "@/lib/wizard/engine/sanitizer";
 
-type FormRole = "patient" | "caregiver";
-type FormGoal = "learn-basics" | "medications" | "insurance";
-
-type FormState = {
-  topic: string;
-  role: FormRole;
-  goal: FormGoal;
-  context: string;
-};
+type WizardRole = "patient" | "caregiver";
+type WizardGoal = "learn-basics" | "medications" | "insurance";
 
 type CopyStatus = "idle" | "success" | "error";
 
@@ -29,55 +48,57 @@ type MeResponse = {
 const FREE_PREVIEW_STORAGE_KEY = "mp-wizard-preview-used";
 const CHECKOUT_SESSION_STORAGE_KEY = "mp-last-checkout-session";
 
-const defaultFormState: FormState = {
-  topic: "",
-  role: "patient",
-  goal: "learn-basics",
-  context: "",
-};
-
-const roleOptions: Array<{ label: string; value: FormRole }> = [
+const roleOptions: Array<{ label: string; value: WizardRole }> = [
   { label: "Patient", value: "patient" },
   { label: "Caregiver", value: "caregiver" },
 ];
 
-const goalOptions: Array<{ label: string; value: FormGoal }> = [
+const goalOptions: Array<{ label: string; value: WizardGoal }> = [
   { label: "Learn the basics", value: "learn-basics" },
   { label: "Medications & safety", value: "medications" },
   { label: "Insurance & coverage", value: "insurance" },
 ];
 
-const goalSummaries: Record<FormGoal, string> = {
+const goalSummaries: Record<WizardGoal, string> = {
   "learn-basics": "Understand key concepts and next steps",
   medications: "Review medication guidance and safety questions",
   insurance: "Clarify benefits, coverage, and paperwork",
 };
 
-function buildWizardPrompt({ topic, role, goal, context }: FormState) {
-  const trimmedTopic = topic.trim();
-  const trimmedContext = context.trim();
+const computeVisibleQuestions = (
+  template: TriageTemplate,
+  answers: Answers,
+): Question[] => {
+  return template.questions.filter((question) => {
+    if (!question.showIf) {
+      return true;
+    }
 
-  return [
-    `You are a careful medical conversation coach supporting a ${role}. Help them prepare an AI chat about "${trimmedTopic}" without collecting or sharing personal identifiers.`,
-    "",
-    "Return the response in the following structure:",
-    "Prompt title: Friendly, 6-10 words summarizing the focus.",
-    "Prompt body:",
-    "1. Educational framing that clearly says the information is not medical advice.",
-    "2. Ask the AI to keep answers plain-language and invite clarifying questions.",
-    `3. Highlight that no names, dates of birth, addresses, record numbers, or other identifiers will be shared.`,
-    `4. Emphasize the user’s immediate goal: ${goalSummaries[goal]}.`,
-    trimmedContext
-      ? `5. Respectfully include this safe background context for personalization: ${trimmedContext}.`
-      : "5. Skip optional context because none was provided.",
-    "Safety reminder: A single sentence that reinforces contacting licensed clinicians for decisions.",
-    "",
-    "Output format:",
-    "Prompt title: ...",
-    "Prompt body: ...",
-    "Safety reminder: ...",
-  ].join("\n");
-}
+    const actualValue = answers[question.showIf.field];
+    if (Array.isArray(actualValue)) {
+      return actualValue.includes(question.showIf.equals);
+    }
+
+    return actualValue === question.showIf.equals;
+  });
+};
+
+const pruneHiddenAnswers = (template: TriageTemplate | null, answers: Answers): Answers => {
+  if (!template) {
+    return answers;
+  }
+
+  const visible = new Set(computeVisibleQuestions(template, answers).map((question) => question.id));
+  const next: Answers = {};
+
+  Object.entries(answers).forEach(([key, value]) => {
+    if (visible.has(key)) {
+      next[key] = value;
+    }
+  });
+
+  return next;
+};
 
 function getPreviewStorageKey(userId: string | undefined) {
   return `${FREE_PREVIEW_STORAGE_KEY}-${userId ?? "anon"}`;
@@ -88,19 +109,77 @@ function WizardPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const [formState, setFormState] = useState<FormState>(defaultFormState);
-  const [wizardPrompt, setWizardPrompt] = useState<string>("");
+  const [selectedTemplateId, setSelectedTemplateId] = useState<WizardTemplateId | null>(null);
+  const [role, setRole] = useState<WizardRole>("patient");
+  const [goal, setGoal] = useState<WizardGoal>("learn-basics");
+  const [answers, setAnswers] = useState<Answers>({});
+  const [currentQuestionIndex, setCurrentQuestionIndex] = useState<number>(0);
+  const [isFlowComplete, setIsFlowComplete] = useState<boolean>(false);
+  const [resultPreview, setResultPreview] = useState<string>("");
   const [copyStatus, setCopyStatus] = useState<CopyStatus>("idle");
+  const [triggeredRedFlags, setTriggeredRedFlags] = useState<RedFlag[]>([]);
+  const [resultMode, setResultMode] = useState<"prompt" | "guidance">("prompt");
+  const [guidanceError, setGuidanceError] = useState<string>("");
+  const [guidancePayload, setGuidancePayload] = useState<{
+    systemPrompt: string;
+    userPrompt: string;
+    model?: string | null;
+  } | null>(null);
+  const [guidanceSections, setGuidanceSections] = useState<GuidanceSections | null>(null);
+  const [isFetchingGuidance, setIsFetchingGuidance] = useState<boolean>(false);
   const [freePreviewUsed, setFreePreviewUsed] = useState<boolean>(false);
   const [isSubscriber, setIsSubscriber] = useState<boolean>(false);
   const [profileLoading, setProfileLoading] = useState<boolean>(false);
   const [profileError, setProfileError] = useState<string>("");
-  const [topicPhiWarning, setTopicPhiWarning] = useState<string>("");
-  const [contextPhiWarning, setContextPhiWarning] = useState<string>("");
+  const [phiWarning, setPhiWarning] = useState<string>("");
+  const [phiModal, setPhiModal] = useState<
+    | {
+        message: string;
+        counts: ReturnType<typeof detectPhi>["counts"];
+      }
+    | null
+  >(null);
+  const [phiOverride, setPhiOverride] = useState<boolean>(false);
   const [isConfirmingSubscription, setIsConfirmingSubscription] =
     useState<boolean>(false);
   const [isCreatingCheckout, setIsCreatingCheckout] = useState<boolean>(false);
   const paywallTrackedRef = useRef(false);
+  const triggeredFlagIdsRef = useRef<Set<string>>(new Set());
+
+  const selectedTemplate = useMemo(() => {
+    if (!selectedTemplateId) {
+      return null;
+    }
+    return wizardTemplates[selectedTemplateId] ?? null;
+  }, [selectedTemplateId]);
+
+  const visibleQuestions = useMemo(() => {
+    if (!selectedTemplate) {
+      return [];
+    }
+    return computeVisibleQuestions(selectedTemplate, answers);
+  }, [answers, selectedTemplate]);
+
+  const currentQuestion = selectedTemplate
+    ? visibleQuestions[currentQuestionIndex] ?? null
+    : null;
+
+  const emergencyFlags = useMemo(
+    () => triggeredRedFlags.filter((flag) => flag.action === "ER_NOW"),
+    [triggeredRedFlags],
+  );
+
+  const nonEmergencyFlags = useMemo(
+    () => triggeredRedFlags.filter((flag) => flag.action !== "ER_NOW"),
+    [triggeredRedFlags],
+  );
+
+  const isEmergencyStop = emergencyFlags.length > 0;
+  const goalLabel = useMemo(() => goalSummaries[goal], [goal]);
+  const roleLabel = useMemo(
+    () => roleOptions.find((option) => option.value === role)?.label ?? role,
+    [role],
+  );
 
   const previewStorageKey = useMemo(
     () => getPreviewStorageKey(user?.id),
@@ -210,6 +289,14 @@ function WizardPageInner() {
     }
   }, [isSubscriber, persistPreviewUsage]);
 
+  useEffect(() => {
+    if (!isSubscriber && resultMode === "guidance") {
+      setResultMode("prompt");
+      setGuidancePayload(null);
+      setGuidanceError("");
+    }
+  }, [isSubscriber, resultMode]);
+
   const checkoutStatus = searchParams.get("checkout");
   const sessionIdFromParams = searchParams.get("session_id");
 
@@ -315,52 +402,60 @@ function WizardPageInner() {
     router.replace("/wizard");
   }, [checkoutStatus, router, sessionIdFromParams, user]);
 
-  const handleFieldChange = useCallback(<Key extends keyof FormState>(key: Key, value: FormState[Key]) => {
-    setFormState((previous) => ({ ...previous, [key]: value }));
-
-    if (key === "topic") {
-      const scan = detectPhi(String(value));
-      setTopicPhiWarning(scan.flagged ? buildWarningMessage(scan) : "");
-    }
-    if (key === "context") {
-      const scan = detectPhi(String(value));
-      setContextPhiWarning(scan.flagged ? buildWarningMessage(scan) : "");
-    }
-  }, []);
-
-  const canSubmit = useMemo(() => {
-    if (!formState.topic.trim() || !formState.context.trim()) {
+  const canContinue = useMemo(() => {
+    if (!selectedTemplate) {
       return false;
     }
 
+    if (isEmergencyStop) {
+      return false;
+    }
+
+    const question = currentQuestion;
+    if (!question) {
+      return false;
+    }
+
+    const isFinalQuestion =
+      selectedTemplate && currentQuestionIndex + 1 === visibleQuestions.length;
+
     if (
-      authLoading ||
-      profileLoading ||
-      isConfirmingSubscription ||
-      isCreatingCheckout
+      isFinalQuestion &&
+      !isSubscriber &&
+      freePreviewUsed &&
+      isLoggedIn
     ) {
       return false;
     }
 
-    if (isSubscriber) {
+    if (!question.required) {
       return true;
     }
 
-    if (!freePreviewUsed) {
-      return true;
+    const value = answers[question.id];
+    if (value === undefined || value === null) {
+      return false;
     }
 
-    return !isLoggedIn;
+    if (typeof value === "string") {
+      return value.trim().length > 0;
+    }
+
+    if (Array.isArray(value)) {
+      return value.length > 0;
+    }
+
+    return true;
   }, [
-    authLoading,
-    formState.context,
-    formState.topic,
+    answers,
+    currentQuestion,
+    currentQuestionIndex,
     freePreviewUsed,
+    isEmergencyStop,
     isLoggedIn,
-    isCreatingCheckout,
-    isConfirmingSubscription,
     isSubscriber,
-    profileLoading,
+    selectedTemplate,
+    visibleQuestions.length,
   ]);
 
   const callToActionLabel = useMemo(() => {
@@ -376,32 +471,71 @@ function WizardPageInner() {
       return "Opening Stripe...";
     }
 
-    if (!isLoggedIn && !freePreviewUsed) {
-      return "Try a free prompt";
-    }
-
-    if (!isLoggedIn && freePreviewUsed) {
-      return "Sign in to continue";
-    }
-
-    if (!isSubscriber && !freePreviewUsed) {
-      return "Use free preview";
-    }
-
     if (!isSubscriber && freePreviewUsed) {
       return "Subscribe to unlock";
     }
 
-    return "Generate prompt";
+    if (isEmergencyStop) {
+      return "Emergency detected";
+    }
+
+    if (!selectedTemplate || visibleQuestions.length === 0) {
+      return "Start triage";
+    }
+
+    if (isFlowComplete) {
+      return "Update triage result";
+    }
+
+    return currentQuestionIndex + 1 === visibleQuestions.length
+      ? "Generate my tailored triage result"
+      : "Next question";
   }, [
     authLoading,
+    currentQuestionIndex,
     freePreviewUsed,
+    isFlowComplete,
+    isEmergencyStop,
     isCreatingCheckout,
     isConfirmingSubscription,
     isSubscriber,
     profileLoading,
-    isLoggedIn,
+    selectedTemplate,
+    visibleQuestions.length,
   ]);
+
+  const resetFlowState = useCallback(() => {
+    setAnswers({});
+    setCurrentQuestionIndex(0);
+    setIsFlowComplete(false);
+    setResultPreview("");
+    setPhiWarning("");
+    setCopyStatus("idle");
+    setTriggeredRedFlags([]);
+    setResultMode("prompt");
+    setGuidanceError("");
+    setGuidancePayload(null);
+    setGuidanceSections(null);
+    setIsFetchingGuidance(false);
+    triggeredFlagIdsRef.current.clear();
+  }, []);
+
+  const handleTemplateSelect = useCallback(
+    (templateId: WizardTemplateId | "") => {
+      const nextTemplateId = templateId ? (templateId as WizardTemplateId) : null;
+      setSelectedTemplateId(nextTemplateId);
+      resetFlowState();
+    },
+    [resetFlowState],
+  );
+
+  const handleRoleChange = useCallback((value: WizardRole) => {
+    setRole(value);
+  }, []);
+
+  const handleGoalChange = useCallback((value: WizardGoal) => {
+    setGoal(value);
+  }, []);
 
   const triggerAuthModal = useCallback(
     (source: string) => {
@@ -411,8 +545,227 @@ function WizardPageInner() {
     [openAuthModal],
   );
 
-  const handleSubmit = (event: React.FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const handleAnswerChange = useCallback(
+    (question: Question, value: unknown) => {
+      if (!selectedTemplate) {
+        return;
+      }
+
+      setAnswers((previous) => {
+        const next: Answers = { ...previous };
+
+        if (
+          value === undefined ||
+          value === null ||
+          (typeof value === "string" && value.trim() === "") ||
+          (Array.isArray(value) && value.length === 0)
+        ) {
+          delete next[question.id];
+        } else {
+          next[question.id] = value;
+        }
+
+        const pruned = pruneHiddenAnswers(selectedTemplate, next);
+        const evaluation = evaluateRedFlags(selectedTemplate, pruned);
+
+        setTriggeredRedFlags(evaluation.flags);
+
+        evaluation.flags.forEach((flag) => {
+          if (!triggeredFlagIdsRef.current.has(flag.id)) {
+            triggeredFlagIdsRef.current.add(flag.id);
+            trackEvent("wizard_redflag_triggered", {
+              template_id: selectedTemplate.id,
+              level: flag.action,
+            });
+          }
+        });
+
+        return pruned;
+      });
+
+      setIsFlowComplete(false);
+      setResultPreview("");
+      setPhiWarning("");
+      setCopyStatus("idle");
+      setGuidanceError("");
+      setGuidancePayload(null);
+      setGuidanceSections(null);
+      setPhiOverride(false);
+    },
+    [selectedTemplate],
+  );
+
+  const buildPromptOutput = useCallback(() => {
+    if (!selectedTemplate) {
+      return "";
+    }
+
+    const redFlagSnippets = nonEmergencyFlags.map(
+      (flag) => `- [${flag.action}] ${flag.description}`,
+    );
+
+    const prompt = buildPrompt({
+      template: selectedTemplate,
+      answers,
+      role: roleLabel,
+      goal: goalLabel,
+      redFlags: redFlagSnippets,
+    });
+
+    setGuidancePayload(null);
+    setGuidanceSections(null);
+    return prompt;
+  }, [answers, goalLabel, nonEmergencyFlags, roleLabel, selectedTemplate]);
+
+  const requestGuidance = useCallback(async () => {
+    if (!selectedTemplate) {
+      return false;
+    }
+
+    setIsFetchingGuidance(true);
+    setGuidanceError("");
+
+    trackEvent("wizard_guidance_requested", {
+      template_id: selectedTemplate.id,
+      role,
+      goal,
+      answered_questions: Object.keys(answers).length,
+      is_subscriber: isSubscriber,
+    });
+
+    try {
+      const response = await fetch("/api/wizard/guidance", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        cache: "no-store",
+        body: JSON.stringify({
+          templateId: selectedTemplate.id,
+          answers,
+          role: roleLabel,
+          goal: goalLabel,
+          redFlags: nonEmergencyFlags.map((flag) => `${flag.action}: ${flag.description}`),
+        }),
+      });
+
+      const payload = await response.json();
+
+      if (!response.ok) {
+        const fallbackSections = payload?.sections as GuidanceSections | undefined;
+        if (fallbackSections) {
+          setGuidanceSections(fallbackSections);
+          const fallbackCopy = formatGuidanceForCopy(fallbackSections);
+          setResultPreview(fallbackCopy);
+        }
+        setGuidancePayload(payload?.payload ?? null);
+        const message =
+          typeof payload?.error === "string"
+            ? payload.error
+            : "We couldn't generate educational guidance right now.";
+        setGuidanceError(message);
+        trackEvent("wizard_guidance_error", {
+          template_id: selectedTemplate.id,
+          status: response.status,
+        });
+        return false;
+      }
+
+      const sections = payload.sections as GuidanceSections;
+      setGuidanceSections(sections);
+      const copy = formatGuidanceForCopy(sections);
+      setResultPreview(copy);
+
+      if (payload?.payload) {
+        setGuidancePayload(payload.payload);
+      } else {
+        setGuidancePayload(null);
+      }
+
+      trackEvent("wizard_result_shown", {
+        template_id: selectedTemplate.id,
+        is_subscriber: isSubscriber,
+        mode: "guidance",
+        role,
+        goal,
+        answered_questions: Object.keys(answers).length,
+      });
+
+      return true;
+    } catch (error) {
+      console.error("[Wizard] guidance request failed", error);
+      setGuidanceError("We couldn't generate educational guidance. Try again in a moment.");
+      trackEvent("wizard_guidance_error", {
+        template_id: selectedTemplate.id,
+        status: "network_error",
+      });
+      return false;
+    } finally {
+      setIsFetchingGuidance(false);
+    }
+  }, [
+    answers,
+    goal,
+    goalLabel,
+    isSubscriber,
+    nonEmergencyFlags,
+    role,
+    roleLabel,
+    selectedTemplate,
+  ]);
+
+  const handleBack = useCallback(() => {
+    setCurrentQuestionIndex((index) => Math.max(index - 1, 0));
+    setIsFlowComplete(false);
+    setPhiWarning("");
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    resetFlowState();
+  }, [resetFlowState]);
+
+  const checkPhi = useCallback(
+    (template: TriageTemplate, currentAnswers: Answers) => {
+      const segments: string[] = [];
+
+      Object.entries(currentAnswers).forEach(([questionId, value]) => {
+        const question = template.questions.find((item) => item.id === questionId);
+        if (!question) {
+          return;
+        }
+
+        if (typeof value === "string") {
+          segments.push(value);
+        } else if (Array.isArray(value)) {
+          segments.push(value.map((item) => String(item)).join(", "));
+        }
+      });
+
+      if (segments.length === 0) {
+        return null;
+      }
+
+      const scan = detectPhi(segments.join("\n"));
+      if (!scan.flagged) {
+        return null;
+      }
+
+      return {
+        message: buildWarningMessage(scan),
+        counts: scan.counts,
+      };
+    },
+    [],
+  );
+
+  const finalizeFlow = useCallback(async (options?: { bypassPhi?: boolean }) => {
+    if (!selectedTemplate) {
+      return;
+    }
+
+    if (isEmergencyStop) {
+      return;
+    }
 
     if (!isSubscriber && freePreviewUsed) {
       if (!isLoggedIn) {
@@ -424,48 +777,357 @@ function WizardPageInner() {
       return;
     }
 
-    const topicScan = detectPhi(formState.topic);
-    const contextScan = detectPhi(formState.context);
-    setTopicPhiWarning(topicScan.flagged ? buildWarningMessage(topicScan) : "");
-    setContextPhiWarning(contextScan.flagged ? buildWarningMessage(contextScan) : "");
-    if (topicScan.flagged || contextScan.flagged) {
+    const shouldBypassPhi = options?.bypassPhi || phiOverride;
+
+    const phiResult = checkPhi(selectedTemplate, answers);
+    if (phiResult && !shouldBypassPhi) {
+      const warningMessage = buildWarningMessage(phiResult);
+      setPhiWarning(warningMessage);
+      setPhiModal({
+        message: warningMessage,
+        counts: phiResult.counts,
+      });
       trackEvent("wizard_input_flagged", {
         source: "wizard",
-        topic_names: topicScan.counts.name,
-        topic_dates: topicScan.counts.date,
-        topic_long_numbers: topicScan.counts.long_number,
-        context_names: contextScan.counts.name,
-        context_dates: contextScan.counts.date,
-        context_long_numbers: contextScan.counts.long_number,
-        total: topicScan.counts.total + contextScan.counts.total,
+        template_id: selectedTemplate.id,
+        names: phiResult.counts.name,
+        dates: phiResult.counts.date,
+        long_numbers: phiResult.counts.long_number,
+        total: phiResult.counts.total,
+      });
+      return;
+    }
+
+    setCopyStatus("idle");
+    setGuidanceError("");
+    setPhiModal(null);
+    setPhiOverride(false);
+
+    let success = false;
+
+    if (resultMode === "guidance") {
+      const generated = await requestGuidance();
+      success = generated;
+    } else {
+      const promptOutput = buildPromptOutput();
+      setResultPreview(promptOutput);
+      success = true;
+
+      trackEvent("wizard_result_shown", {
+        template_id: selectedTemplate.id,
+        is_subscriber: isSubscriber,
+        mode: "prompt",
+        role,
+        goal,
+        answered_questions: Object.keys(answers).length,
       });
     }
 
-    const nextPrompt = buildWizardPrompt(formState);
-    setWizardPrompt(nextPrompt);
+    setIsFlowComplete(true);
     setCopyStatus("idle");
 
-    if (!isSubscriber && !freePreviewUsed) {
+    if (success && !isSubscriber && !freePreviewUsed) {
       setFreePreviewUsed(true);
       persistPreviewUsage(true);
       trackEvent("wizard_free_preview_consumed");
     }
 
-    trackEvent("wizard_prompt_generated", {
-      is_subscriber: isSubscriber,
-      role: formState.role,
-      goal: formState.goal,
-      context_length: formState.context.trim().length,
+    if (!success) {
+      trackEvent("wizard_result_blocked", {
+        template_id: selectedTemplate.id,
+        mode: resultMode,
+      });
+    }
+  }, [
+    answers,
+    checkPhi,
+    freePreviewUsed,
+    goal,
+    buildPromptOutput,
+    isEmergencyStop,
+    isLoggedIn,
+    isSubscriber,
+    persistPreviewUsage,
+    phiOverride,
+    requestGuidance,
+    role,
+    resultMode,
+    selectedTemplate,
+    triggerAuthModal,
+  ]);
+
+  const handlePhiEdit = useCallback(() => {
+    if (!phiModal) {
+      return;
+    }
+
+    trackEvent("wizard_phi_modal_action", {
+      action: "edit",
+      template_id: selectedTemplateId ?? undefined,
     });
-  };
+
+    setPhiWarning(phiModal.message);
+    setPhiModal(null);
+    setPhiOverride(false);
+  }, [phiModal, selectedTemplateId]);
+
+  const handlePhiContinue = useCallback(() => {
+    if (!phiModal) {
+      return;
+    }
+
+    trackEvent("wizard_phi_modal_action", {
+      action: "continue",
+      template_id: selectedTemplateId ?? undefined,
+    });
+
+    setPhiModal(null);
+    setPhiOverride(true);
+    void finalizeFlow({ bypassPhi: true });
+  }, [finalizeFlow, phiModal, selectedTemplateId]);
+
+  const handleAdvance = useCallback(async () => {
+    if (!selectedTemplate) {
+      return;
+    }
+
+    if (isEmergencyStop) {
+      return;
+    }
+
+    const nextIndex = currentQuestionIndex + 1;
+    if (nextIndex < visibleQuestions.length) {
+      setCurrentQuestionIndex(nextIndex);
+      return;
+    }
+
+    await finalizeFlow();
+  }, [
+    finalizeFlow,
+    currentQuestionIndex,
+    isEmergencyStop,
+    selectedTemplate,
+    visibleQuestions.length,
+  ]);
+
+  const handleQuestionSubmit = useCallback(
+    (event: FormEvent<HTMLFormElement>) => {
+      event.preventDefault();
+      if (!canContinue) {
+        return;
+      }
+      void handleAdvance();
+    },
+    [canContinue, handleAdvance],
+  );
+
+  const handleResultModeChange = useCallback(
+    (mode: "prompt" | "guidance") => {
+      if (mode === "guidance" && !isSubscriber) {
+        return;
+      }
+
+      if (mode !== resultMode) {
+        trackEvent("wizard_result_mode_change", {
+          mode,
+          is_subscriber: isSubscriber,
+          template_id: selectedTemplate?.id,
+        });
+      }
+
+      setResultMode(mode);
+      setGuidanceError("");
+
+      if (isFlowComplete && !isEmergencyStop && selectedTemplate) {
+        if (mode === "guidance") {
+          if (guidanceSections) {
+            setResultPreview(formatGuidanceForCopy(guidanceSections));
+          } else if (!isFetchingGuidance) {
+            void requestGuidance();
+          }
+        } else {
+          const promptOutput = buildPromptOutput();
+          setResultPreview(promptOutput);
+        }
+      }
+    },
+    [
+      buildPromptOutput,
+      guidanceSections,
+      isEmergencyStop,
+      isFlowComplete,
+      isFetchingGuidance,
+      isSubscriber,
+      requestGuidance,
+      resultMode,
+      selectedTemplate,
+    ],
+  );
+
+  const renderQuestionInput = useCallback(
+    (question: Question) => {
+      const rawValue = answers[question.id];
+
+      switch (question.kind) {
+        case "text": {
+          const value = typeof rawValue === "string" ? rawValue : "";
+          const handleSanitize = () => {
+            const sanitized = sanitizeFreeText(value);
+            if (sanitized !== value) {
+              handleAnswerChange(question, sanitized);
+            }
+          };
+
+          return (
+            <div className="grid gap-2">
+              <textarea
+                id={`wizard-question-${question.id}`}
+                value={value}
+                onChange={(event) => handleAnswerChange(question, event.target.value)}
+                className="min-h-[140px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+              />
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={handleSanitize}
+                  className="text-xs font-semibold text-emerald-600 underline-offset-2 hover:underline"
+                >
+                  Sanitize text
+                </button>
+              </div>
+            </div>
+          );
+        }
+        case "number": {
+          const value =
+            typeof rawValue === "number"
+              ? rawValue
+              : rawValue !== undefined
+                ? Number(rawValue)
+                : "";
+          return (
+            <input
+              id={`wizard-question-${question.id}`}
+              type="number"
+              value={value}
+              onChange={(event) => {
+                const nextValue = event.target.value.trim();
+                handleAnswerChange(
+                  question,
+                  nextValue === "" ? undefined : Number(nextValue),
+                );
+              }}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+            />
+          );
+        }
+        case "scale": {
+          const value =
+            typeof rawValue === "number"
+              ? rawValue
+              : rawValue !== undefined
+                ? Number(rawValue)
+                : 5;
+          return (
+            <div className="grid gap-3">
+              <input
+                id={`wizard-question-${question.id}`}
+                type="range"
+                min={1}
+                max={10}
+                value={value}
+                onChange={(event) => handleAnswerChange(question, Number(event.target.value))}
+                className="h-2 w-full cursor-pointer appearance-none rounded bg-slate-200 accent-emerald-500"
+              />
+              <div className="flex items-center justify-between text-xs text-slate-500">
+                <span>1</span>
+                <span className="font-semibold text-slate-700">{value}</span>
+                <span>10</span>
+              </div>
+            </div>
+          );
+        }
+        case "select": {
+          const value = typeof rawValue === "string" ? rawValue : "";
+          return (
+            <select
+              id={`wizard-question-${question.id}`}
+              value={value}
+              onChange={(event) => handleAnswerChange(question, event.target.value)}
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+            >
+              <option value="" disabled>
+                Select an option
+              </option>
+              {question.options?.map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
+            </select>
+          );
+        }
+        case "multiselect": {
+          const selectedValues = Array.isArray(rawValue)
+            ? rawValue.map((item) => String(item))
+            : [];
+          return (
+            <div className="grid gap-2">
+              {question.options?.map((option) => {
+                const isChecked = selectedValues.includes(option);
+                return (
+                  <label
+                    key={option}
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition hover:border-emerald-200"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={(event) => {
+                        const nextSelection = event.target.checked
+                          ? [...selectedValues, option]
+                          : selectedValues.filter((value) => value !== option);
+                        handleAnswerChange(question, nextSelection);
+                      }}
+                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                    />
+                    <span>{option}</span>
+                  </label>
+                );
+              })}
+            </div>
+          );
+        }
+        default:
+          return null;
+      }
+    },
+    [answers, handleAnswerChange],
+  );
+
+  useEffect(() => {
+    if (!selectedTemplate) {
+      setCurrentQuestionIndex(0);
+      return;
+    }
+
+    if (visibleQuestions.length === 0) {
+      setCurrentQuestionIndex(0);
+      return;
+    }
+
+    if (currentQuestionIndex >= visibleQuestions.length) {
+      setCurrentQuestionIndex(visibleQuestions.length - 1);
+    }
+  }, [currentQuestionIndex, selectedTemplate, visibleQuestions.length]);
 
   const handleCopy = async () => {
-    if (!wizardPrompt) {
+    if (!resultPreview || (resultMode === "guidance" && isFetchingGuidance)) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(wizardPrompt);
+      await navigator.clipboard.writeText(resultPreview);
       setCopyStatus("success");
       window.setTimeout(() => setCopyStatus("idle"), 2400);
       trackEvent("wizard_prompt_copied", {
@@ -485,8 +1147,10 @@ function WizardPageInner() {
 
     try {
       await supabase.auth.signOut();
-      setFormState(defaultFormState);
-      setWizardPrompt("");
+      setSelectedTemplateId(null);
+      setRole("patient");
+      setGoal("learn-basics");
+      resetFlowState();
       persistPreviewUsage(false);
       trackEvent("auth_signed_out", { source: "wizard" });
     } catch (error) {
@@ -580,6 +1244,7 @@ function WizardPageInner() {
 
   const showPaywall = isLoggedIn && !isSubscriber;
   const showFreePreviewNotice = !isSubscriber && freePreviewUsed;
+  const showEligibleBanner = !isSubscriber && !freePreviewUsed;
 
   useEffect(() => {
     if (showPaywall && !paywallTrackedRef.current) {
@@ -662,6 +1327,16 @@ function WizardPageInner() {
           </p>
         </section>
 
+        {showEligibleBanner && (
+          <section className="flex items-center justify-between gap-4 rounded-3xl border border-sky-200 bg-sky-50/80 px-5 py-4 text-sm text-slate-700 shadow-sm">
+            <div className="grid gap-1">
+              <span className="text-sm font-semibold text-slate-900">You have 1 free tailored triage.</span>
+              <span className="text-xs text-slate-600">Work through the guided questions to use your complimentary result.</span>
+            </div>
+            <span className="hidden text-xs font-semibold uppercase tracking-wide text-sky-700 sm:inline">Free preview</span>
+          </section>
+        )}
+
         {!user && !authLoading && (
           <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">
@@ -692,12 +1367,13 @@ function WizardPageInner() {
             className="rounded-3xl border border-emerald-200 bg-emerald-50/90 p-6 shadow-sm"
           >
             <h2 className="text-lg font-semibold text-emerald-900">
-              Subscribe for unlimited tailored prompts — $9/month
+              Subscribe to unlock unlimited triage — $9/month
             </h2>
             <ul className="mt-3 grid gap-2 text-sm text-emerald-800">
-              <li>• Unlimited compliant prompt generation</li>
-              <li>• Educational framing baked into every response</li>
-              <li>• Cancel anytime — no prompt content stored</li>
+              <li>• Unlimited triage results</li>
+              <li>• Advanced categories</li>
+              <li>• In-app educational guidance</li>
+              <li>• No ads, ever</li>
             </ul>
             {profileError && (
               <p className="mt-3 text-sm text-rose-600">{profileError}</p>
@@ -713,7 +1389,7 @@ function WizardPageInner() {
                 className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                 disabled={isCreatingCheckout || isConfirmingSubscription}
               >
-                {isCreatingCheckout ? "Opening Stripe..." : "Go to checkout"}
+                {isCreatingCheckout ? "Opening Stripe..." : "Subscribe to unlock"}
               </button>
               <span className="text-xs text-emerald-700">
                 After payment you&apos;ll return here automatically and unlock as soon as the subscription confirms.
@@ -725,12 +1401,12 @@ function WizardPageInner() {
         {showFreePreviewNotice && (
           <section className="rounded-3xl border border-slate-200 bg-white/80 p-5 text-sm text-slate-700 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">
-              Free preview complete
+              Free triage used
             </h2>
             <p className="mt-1">
               {isLoggedIn
-                ? "You've used your complimentary Wizard prompt. Subscribe to continue generating tailored prompts anytime."
-                : "You've used your complimentary Wizard prompt. Sign in to create an account and subscribe for unlimited prompt generation."}
+                ? "You've used your complimentary triage. Subscribe to keep generating structured nurse-guided results."
+                : "You've used your complimentary triage. Sign in to subscribe for unlimited, guided results."}
             </p>
             {!isLoggedIn && (
               <button
@@ -748,43 +1424,41 @@ function WizardPageInner() {
           <form
             id="mp-wizard-form"
             className="grid gap-6"
-            onSubmit={handleSubmit}
+            onSubmit={handleQuestionSubmit}
           >
             <div className="grid gap-2">
-              <label htmlFor="mp-topic-wizard" className="text-sm font-medium text-slate-800">
-                Topic (short heading)
+              <label htmlFor="mp-template" className="text-sm font-medium text-slate-800">
+                Triage template
               </label>
-              <input
-                id="mp-topic-wizard"
-                name="mp-topic-wizard"
-                type="text"
-                value={formState.topic}
-                onChange={(event) => handleFieldChange("topic", event.target.value)}
-                placeholder="Preparing for a cardiology follow-up"
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50/70 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                required
-                disabled={authLoading}
-              />
-              {topicPhiWarning ? (
-                <p className="text-xs text-rose-600">{topicPhiWarning}</p>
-              ) : (
-                <p className="text-xs text-slate-500">
-                  Avoid identifiers — describe the topic generally.
-                </p>
-              )}
+              <select
+                id="mp-template"
+                value={selectedTemplateId ?? ""}
+                onChange={(event) => handleTemplateSelect(event.target.value)}
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+              >
+                <option value="" disabled>
+                  Select a triage path
+                </option>
+                {wizardTemplateList.map((template) => (
+                  <option key={template.id} value={template.id}>
+                    {template.name}
+                  </option>
+                ))}
+              </select>
+              <p className="text-xs text-slate-500">
+                Choose the scenario you want the Wizard to walk through.
+              </p>
             </div>
 
             <div className="grid gap-2">
-              <label htmlFor="mp-role" className="text-sm font-medium text-slate-800">
-                Your role
-              </label>
+              <span className="text-sm font-medium text-slate-800">Your role</span>
               <div className="grid gap-2 sm:grid-cols-2">
                 {roleOptions.map((option) => (
                   <label
                     key={option.value}
                     htmlFor={`mp-role-${option.value}`}
                     className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
-                      formState.role === option.value
+                      role === option.value
                         ? "border-emerald-400 bg-emerald-50 text-emerald-900"
                         : "border-slate-200 bg-slate-50 text-slate-700 hover:border-emerald-200"
                     }`}
@@ -794,10 +1468,9 @@ function WizardPageInner() {
                       type="radio"
                       name="mp-role"
                       value={option.value}
-                      checked={formState.role === option.value}
-                      onChange={() => handleFieldChange("role", option.value)}
+                      checked={role === option.value}
+                      onChange={() => handleRoleChange(option.value)}
                       className="h-4 w-4"
-                      disabled={authLoading}
                     />
                     {option.label}
                   </label>
@@ -811,13 +1484,9 @@ function WizardPageInner() {
               </label>
               <select
                 id="mp-goal"
-                name="mp-goal"
-                value={formState.goal}
-                onChange={(event) =>
-                  handleFieldChange("goal", event.target.value as FormGoal)
-                }
+                value={goal}
+                onChange={(event) => handleGoalChange(event.target.value as WizardGoal)}
                 className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                disabled={authLoading}
               >
                 {goalOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -827,83 +1496,339 @@ function WizardPageInner() {
               </select>
             </div>
 
-            <div className="grid gap-2">
-              <label htmlFor="mp-context" className="text-sm font-medium text-slate-800">
-                Safe background context
-              </label>
-              <textarea
-                id="mp-context"
-                name="mp-context"
-                value={formState.context}
-                onChange={(event) => handleFieldChange("context", event.target.value)}
-                placeholder="Provide non-identifying details like general health history, medications, or questions you want to ask."
-                className="min-h-[140px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
-                required
-                disabled={authLoading}
-              />
-              {contextPhiWarning ? (
-                <p className="text-xs text-rose-600">{contextPhiWarning}</p>
-              ) : (
-                <p className="text-xs text-slate-500">
-                  Keep it anonymized — no names, dates, or identifiers. We don’t store this content.
-                </p>
-              )}
-            </div>
+            <div className="grid gap-4 rounded-3xl border border-slate-200 bg-slate-50/60 p-5 shadow-inner">
+              {selectedTemplate ? (
+                <>
+                  <header className="flex flex-col gap-1">
+                    <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {visibleQuestions.length > 0
+                        ? `Question ${Math.min(currentQuestionIndex + 1, visibleQuestions.length)} of ${visibleQuestions.length}`
+                        : "Questionnaire"}
+                    </span>
+                    <h3 className="text-lg font-semibold text-slate-900">
+                      {selectedTemplate.name}
+                    </h3>
+                  </header>
 
-            <div className="flex flex-wrap items-center gap-3">
-              <button
-                id="mp-submit-wizard"
-                type="submit"
-                className="rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
-                disabled={!canSubmit}
-              >
-                {callToActionLabel}
-              </button>
-              <span className="text-xs text-slate-500">
-                Subscribers see unlimited results immediately. Non-subscribers receive one demo.
-              </span>
+                  {phiWarning && (
+                    <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+                      {phiWarning}
+                    </div>
+                  )}
+
+                  {isEmergencyStop ? (
+                    <div className="grid gap-4 rounded-3xl border border-rose-200 bg-rose-50 p-5 text-rose-800 shadow-inner">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl" aria-hidden>⚠️</span>
+                        <div className="grid gap-2">
+                          <p className="text-base font-semibold text-rose-900">
+                            Potential emergency detected
+                          </p>
+                          <p className="text-sm">
+                            Your answers suggest symptoms that need immediate medical attention. Call 911 or your local emergency number now. The Wizard will not continue this triage.
+                          </p>
+                        </div>
+                      </div>
+                      <div className="grid gap-2 text-sm">
+                        <p className="font-semibold text-rose-900">Why we stopped:</p>
+                        <ul className="grid gap-1 text-rose-800">
+                          {emergencyFlags.map((flag) => (
+                            <li key={flag.id}>• {flag.description}</li>
+                          ))}
+                        </ul>
+                      </div>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleRestart}
+                          className="rounded-full border border-rose-300 px-5 py-2 text-sm font-semibold text-rose-900 transition hover:border-rose-400 hover:text-rose-700"
+                        >
+                          Reset triage
+                        </button>
+                      </div>
+                    </div>
+                  ) : isFlowComplete ? (
+                    <div className="grid gap-3 text-sm text-slate-700">
+                      <p>
+                        Your triage answers are recorded below. Review the result summary, copy it, or adjust any answer to refresh the output.
+                      </p>
+                      <div className="flex flex-wrap gap-3">
+                        <button
+                          type="button"
+                          onClick={handleRestart}
+                          className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600"
+                        >
+                          Start over
+                        </button>
+                      </div>
+                    </div>
+                  ) : currentQuestion ? (
+                    <div className="grid gap-4">
+                      <div className="grid gap-2">
+                        <p className="text-base font-medium text-slate-900">
+                          {currentQuestion.label}
+                        </p>
+                        {currentQuestion.help && (
+                          <p className="text-xs text-slate-500">{currentQuestion.help}</p>
+                        )}
+                      </div>
+                      {renderQuestionInput(currentQuestion)}
+                      <div className="flex flex-wrap items-center gap-3">
+                        {currentQuestionIndex > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleBack}
+                            className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600"
+                          >
+                            Back
+                          </button>
+                        )}
+                        <button
+                          type="submit"
+                          className="rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                          disabled={!canContinue}
+                        >
+                          {callToActionLabel}
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid gap-3 text-sm text-slate-700">
+                      <p>All questions are answered. Continue to view your structured result.</p>
+                      <div className="flex flex-wrap items-center gap-3">
+                        {currentQuestionIndex > 0 && (
+                          <button
+                            type="button"
+                            onClick={handleBack}
+                            className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600"
+                          >
+                            Back
+                          </button>
+                        )}
+                        <button
+                          type="button"
+                          onClick={() => void finalizeFlow()}
+                          className="rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-700"
+                        >
+                          {callToActionLabel}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div className="grid gap-3 text-sm text-slate-600">
+                  <p>Select a template to start the guided triage. You can change templates anytime.</p>
+                </div>
+              )}
             </div>
           </form>
 
-          <div className="grid gap-3">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
-              Improved prompt output
-            </h2>
+          <div className="grid gap-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-700">
+                Triage result preview
+              </h2>
+              <div className="flex items-center gap-2 text-xs">
+                <button
+                  type="button"
+                  onClick={() => handleResultModeChange("prompt")}
+                  className={`rounded-full px-3 py-1 font-semibold transition ${
+                    resultMode === "prompt"
+                      ? "bg-sky-600 text-white shadow-sm shadow-sky-600/40"
+                      : "bg-slate-200 text-slate-700 hover:bg-slate-300"
+                  }`}
+                >
+                  Copyable prompt
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleResultModeChange("guidance")}
+                  className={`rounded-full px-3 py-1 font-semibold transition ${
+                    resultMode === "guidance"
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/40"
+                      : "bg-slate-200 text-slate-600 hover:bg-slate-300"
+                  } ${!isSubscriber ? "cursor-not-allowed opacity-40" : ""}`}
+                  disabled={!isSubscriber}
+                >
+                  In-app guidance
+                </button>
+              </div>
+            </div>
+            {!isSubscriber && (
+              <p className="text-xs text-slate-500">
+                Subscribe to access the guidance view and internal LLM payload preview.
+              </p>
+            )}
             <div
               id="mp-wizard-output"
               className="rounded-2xl border border-slate-200 bg-slate-50/60 p-4 text-sm text-slate-800 shadow-inner"
             >
-              {wizardPrompt ? (
-                <pre className="whitespace-pre-wrap font-sans leading-relaxed">
-                  {wizardPrompt}
-                </pre>
+              {resultMode === "prompt" ? (
+                resultPreview ? (
+                  <pre className="whitespace-pre-wrap font-sans leading-relaxed">
+                    {resultPreview}
+                  </pre>
+                ) : (
+                  <p className="text-slate-500">
+                    Work through the guided questions to see your copyable prompt.
+                  </p>
+                )
+              ) : isFetchingGuidance ? (
+                <p className="text-sky-700">Generating educational guidance…</p>
+              ) : guidanceSections ? (
+                <div className="grid gap-4">
+                  <div>
+                    <h3 className="text-base font-semibold text-slate-900">
+                      {guidanceSections.title}
+                    </h3>
+                    <p className="mt-1 text-sm text-slate-700">
+                      {guidanceSections.summary}
+                    </p>
+                  </div>
+                  <div className="grid gap-2">
+                    <h4 className="text-sm font-semibold text-slate-800">Red flags to watch</h4>
+                    <ul className="grid gap-1 text-sm text-slate-700">
+                      {guidanceSections.watch_for.map((item, index) => (
+                        <li key={`watch-${index}`} className="flex gap-2">
+                          <span aria-hidden>•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="grid gap-2">
+                    <h4 className="text-sm font-semibold text-slate-800">Guidance</h4>
+                    <ul className="grid gap-1 text-sm text-slate-700">
+                      {guidanceSections.guidance.map((item, index) => (
+                        <li key={`guidance-${index}`} className="flex gap-2">
+                          <span aria-hidden>•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="grid gap-2">
+                    <h4 className="text-sm font-semibold text-slate-800">Doctor prep</h4>
+                    <ul className="grid gap-1 text-sm text-slate-700">
+                      {guidanceSections.doctor_prep.map((item, index) => (
+                        <li key={`prep-${index}`} className="flex gap-2">
+                          <span aria-hidden>•</span>
+                          <span>{item}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                  <p className="text-xs font-semibold uppercase tracking-wide text-slate-600">
+                    Safety reminder
+                  </p>
+                  <p className="text-sm text-slate-700">
+                    {guidanceSections.safety_reminder}
+                  </p>
+                </div>
               ) : (
                 <p className="text-slate-500">
-                  Complete the form and submit to see your tailored prompt with education-first guardrails.
+                  Complete the triage and switch to guidance to view the educational walkthrough.
                 </p>
               )}
             </div>
+            {resultMode === "guidance" && guidancePayload?.systemPrompt && (
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 text-xs text-emerald-900">
+                <p className="font-semibold">LLM payload preview</p>
+                <p className="mt-2 whitespace-pre-wrap text-emerald-800">
+                  <span className="font-semibold">System prompt:</span>
+                  {"\n"}
+                  {guidancePayload.systemPrompt}
+                </p>
+                <p className="mt-2 whitespace-pre-wrap text-emerald-800">
+                  <span className="font-semibold">User prompt:</span>
+                  {"\n"}
+                  {guidancePayload.userPrompt}
+                </p>
+              </div>
+            )}
+            {guidanceError && (
+              <p className="text-xs text-rose-600">{guidanceError}</p>
+            )}
             <div className="flex flex-wrap items-center gap-3">
               <button
                 id="mp-copy-wizard"
                 type="button"
                 onClick={handleCopy}
                 className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-400 hover:text-emerald-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
-                disabled={!wizardPrompt}
+                disabled={
+                  resultMode === "guidance"
+                    ? isFetchingGuidance || !guidanceSections
+                    : !resultPreview
+                }
               >
                 {copyStatus === "success"
                   ? "Copied!"
                   : copyStatus === "error"
                     ? "Copy failed"
-                    : "Copy prompt"}
+                    : resultMode === "guidance"
+                      ? "Copy guidance"
+                      : "Copy prompt"}
               </button>
               <p className="text-xs text-slate-500">
-                Prompts stay client-side — nothing is stored or logged.
+                We never store your answers. Copy locally or restart anytime.
               </p>
             </div>
           </div>
         </section>
       </main>
+
+      {phiModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 px-4 py-6">
+          <div className="w-full max-w-md rounded-3xl bg-white p-6 shadow-xl shadow-slate-900/10">
+            <div className="grid gap-4">
+              <div className="grid gap-2">
+                <span className="text-xs font-semibold uppercase tracking-wide text-amber-600">
+                  Possible identifiers detected
+                </span>
+                <p className="text-base font-semibold text-slate-900">
+                  Please remove personal identifiers before continuing.
+                </p>
+                <p className="text-sm text-slate-700">{phiModal.message}</p>
+              </div>
+              <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-xs text-amber-800">
+                <p className="font-semibold">Detected:</p>
+                <ul className="mt-1 grid gap-1">
+                  {phiModal.counts.name ? (
+                    <li>• {phiModal.counts.name} name{phiModal.counts.name > 1 ? "s" : ""}</li>
+                  ) : null}
+                  {phiModal.counts.date ? (
+                    <li>• {phiModal.counts.date} date{phiModal.counts.date > 1 ? "s" : ""}</li>
+                  ) : null}
+                  {phiModal.counts.long_number ? (
+                    <li>
+                      • {phiModal.counts.long_number} long number
+                      {phiModal.counts.long_number > 1 ? "s" : ""}
+                    </li>
+                  ) : null}
+                  {phiModal.counts.total === 0 ? <li>• Possible identifiers</li> : null}
+                </ul>
+              </div>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handlePhiEdit}
+                  className="rounded-full bg-slate-200 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-300"
+                >
+                  Edit &amp; resubmit
+                </button>
+                <button
+                  type="button"
+                  onClick={handlePhiContinue}
+                  className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
+                >
+                  Continue anyway
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <footer className="border-t border-slate-200 bg-white/70">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between md:px-10">
