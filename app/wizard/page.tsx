@@ -26,6 +26,12 @@ import {
   wizardTemplates,
   WizardTemplateId,
 } from "@/lib/wizard/templates";
+import { determineWizardAccess } from "@/lib/wizard/engine/access";
+import { deriveCallToActionLabel } from "@/lib/wizard/engine/callToAction";
+import {
+  computeVisibleQuestions,
+  pruneHiddenAnswers,
+} from "@/lib/wizard/engine/questions";
 import { evaluateRedFlags } from "@/lib/wizard/engine/redflags";
 import { buildPrompt } from "@/lib/wizard/engine/buildPrompt";
 import {
@@ -33,6 +39,11 @@ import {
   type GuidanceSections,
 } from "@/lib/wizard/engine/buildGuidance";
 import { sanitizeFreeText } from "@/lib/wizard/engine/sanitizer";
+import {
+  getPreviewStorageKey,
+  readPreviewUsage,
+  writePreviewUsage,
+} from "@/lib/wizard/storage/previewFlag";
 
 type WizardRole = "patient" | "caregiver";
 type WizardGoal = "learn-basics" | "medications" | "insurance";
@@ -45,7 +56,6 @@ type MeResponse = {
   is_subscriber: boolean;
 };
 
-const FREE_PREVIEW_STORAGE_KEY = "mp-wizard-preview-used";
 const CHECKOUT_SESSION_STORAGE_KEY = "mp-last-checkout-session";
 
 const roleOptions: Array<{ label: string; value: WizardRole }> = [
@@ -64,45 +74,6 @@ const goalSummaries: Record<WizardGoal, string> = {
   medications: "Review medication guidance and safety questions",
   insurance: "Clarify benefits, coverage, and paperwork",
 };
-
-const computeVisibleQuestions = (
-  template: TriageTemplate,
-  answers: Answers,
-): Question[] => {
-  return template.questions.filter((question) => {
-    if (!question.showIf) {
-      return true;
-    }
-
-    const actualValue = answers[question.showIf.field];
-    if (Array.isArray(actualValue)) {
-      return actualValue.includes(question.showIf.equals);
-    }
-
-    return actualValue === question.showIf.equals;
-  });
-};
-
-const pruneHiddenAnswers = (template: TriageTemplate | null, answers: Answers): Answers => {
-  if (!template) {
-    return answers;
-  }
-
-  const visible = new Set(computeVisibleQuestions(template, answers).map((question) => question.id));
-  const next: Answers = {};
-
-  Object.entries(answers).forEach(([key, value]) => {
-    if (visible.has(key)) {
-      next[key] = value;
-    }
-  });
-
-  return next;
-};
-
-function getPreviewStorageKey(userId: string | undefined) {
-  return `${FREE_PREVIEW_STORAGE_KEY}-${userId ?? "anon"}`;
-}
 
 function WizardPageInner() {
   const { supabase, user, loading: authLoading, openAuthModal } = useAuthContext();
@@ -174,6 +145,13 @@ function WizardPageInner() {
     [triggeredRedFlags],
   );
 
+  const questionCount = visibleQuestions.length;
+  const hasTemplate = Boolean(selectedTemplate);
+  const hasQuestions = questionCount > 0;
+  const isOnLastQuestion = hasQuestions
+    ? currentQuestionIndex + 1 === questionCount
+    : false;
+
   const isEmergencyStop = emergencyFlags.length > 0;
   const goalLabel = useMemo(() => goalSummaries[goal], [goal]);
   const roleLabel = useMemo(
@@ -191,13 +169,8 @@ function WizardPageInner() {
       return;
     }
 
-    try {
-      const stored = window.localStorage.getItem(previewStorageKey);
-      setFreePreviewUsed(stored === "1");
-    } catch (error) {
-      console.warn("Unable to read wizard preview flag", error);
-      setFreePreviewUsed(false);
-    }
+    const used = readPreviewUsage(window.localStorage, previewStorageKey);
+    setFreePreviewUsed(used);
   }, [previewStorageKey]);
 
   const persistPreviewUsage = useCallback(
@@ -206,20 +179,22 @@ function WizardPageInner() {
         return;
       }
 
-      try {
-        if (used) {
-          window.localStorage.setItem(previewStorageKey, "1");
-        } else {
-          window.localStorage.removeItem(previewStorageKey);
-        }
-      } catch (error) {
-        console.warn("Unable to persist wizard preview flag", error);
-      }
+      writePreviewUsage(window.localStorage, previewStorageKey, used);
     },
     [previewStorageKey],
   );
 
   const isLoggedIn = Boolean(user);
+
+  const accessState = useMemo(
+    () =>
+      determineWizardAccess({
+        isSubscriber,
+        freePreviewUsed,
+        isLoggedIn,
+      }),
+    [freePreviewUsed, isLoggedIn, isSubscriber],
+  );
 
   const loadProfile = useCallback(async () => {
     if (!user) {
@@ -419,12 +394,7 @@ function WizardPageInner() {
     const isFinalQuestion =
       selectedTemplate && currentQuestionIndex + 1 === visibleQuestions.length;
 
-    if (
-      isFinalQuestion &&
-      !isSubscriber &&
-      freePreviewUsed &&
-      isLoggedIn
-    ) {
+    if (isFinalQuestion && accessState.state === "paywall_blocked") {
       return false;
     }
 
@@ -453,56 +423,40 @@ function WizardPageInner() {
     freePreviewUsed,
     isEmergencyStop,
     isLoggedIn,
-    isSubscriber,
+    accessState.state,
     selectedTemplate,
     visibleQuestions.length,
   ]);
 
-  const callToActionLabel = useMemo(() => {
-    if (authLoading || profileLoading) {
-      return "Checking access...";
-    }
-
-    if (isConfirmingSubscription) {
-      return "Unlocking subscription...";
-    }
-
-    if (isCreatingCheckout) {
-      return "Opening Stripe...";
-    }
-
-    if (!isSubscriber && freePreviewUsed) {
-      return "Subscribe to unlock";
-    }
-
-    if (isEmergencyStop) {
-      return "Emergency detected";
-    }
-
-    if (!selectedTemplate || visibleQuestions.length === 0) {
-      return "Start triage";
-    }
-
-    if (isFlowComplete) {
-      return "Update triage result";
-    }
-
-    return currentQuestionIndex + 1 === visibleQuestions.length
-      ? "Generate my tailored triage result"
-      : "Next question";
-  }, [
-    authLoading,
-    currentQuestionIndex,
-    freePreviewUsed,
-    isFlowComplete,
-    isEmergencyStop,
-    isCreatingCheckout,
-    isConfirmingSubscription,
-    isSubscriber,
-    profileLoading,
-    selectedTemplate,
-    visibleQuestions.length,
-  ]);
+  const callToActionLabel = useMemo(
+    () =>
+      deriveCallToActionLabel({
+        authLoading,
+        profileLoading,
+        isConfirmingSubscription,
+        isCreatingCheckout,
+        isSubscriber,
+        freePreviewUsed,
+        isEmergencyStop,
+        hasTemplate,
+        hasQuestions,
+        isFlowComplete,
+        isOnLastQuestion,
+      }),
+    [
+      authLoading,
+      freePreviewUsed,
+      hasQuestions,
+      hasTemplate,
+      isConfirmingSubscription,
+      isCreatingCheckout,
+      isEmergencyStop,
+      isFlowComplete,
+      isOnLastQuestion,
+      isSubscriber,
+      profileLoading,
+    ],
+  );
 
   const resetFlowState = useCallback(() => {
     setAnswers({});
@@ -767,12 +721,12 @@ function WizardPageInner() {
       return;
     }
 
-    if (!isSubscriber && freePreviewUsed) {
-      if (!isLoggedIn) {
-        trackEvent("wizard_prompt_blocked", { reason: "anon-login" });
+    if (!accessState.canGenerate) {
+      if (accessState.state === "anon_blocked") {
+        trackEvent("wizard_prompt_blocked", { reason: accessState.reason });
         triggerAuthModal("wizard-submit");
       } else {
-        trackEvent("wizard_prompt_blocked", { reason: "paywall" });
+        trackEvent("wizard_prompt_blocked", { reason: accessState.reason });
       }
       return;
     }
@@ -840,6 +794,7 @@ function WizardPageInner() {
     }
   }, [
     answers,
+    accessState,
     checkPhi,
     freePreviewUsed,
     goal,

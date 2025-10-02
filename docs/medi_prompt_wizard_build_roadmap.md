@@ -181,6 +181,7 @@ Each template includes ordered questions, red-flag tests, and a standard `output
 - Ensure `?debug=events` logs new events.
 
 ## 10) QA Checklist
+- **Automated coverage:** `npm run test:wizard` runs the wizard-focused test suite (red flags, PHI guard, gating, prompt/guidance builders, API fallback). The suite executes in CI via `.github/workflows/wizard-tests.yml` on any wizard-related change. Treat failing checks as release blockers.
 - **Gating:**
   - Cold anon → complete one triage → next attempt blocked.
   - Logged-in non-subscriber → one triage → paywall thereafter.

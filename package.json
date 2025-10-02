@@ -12,7 +12,8 @@
     "perf:check": "node ./scripts/perf-check.mjs",
     "verify:transport": "node ./scripts/verify-transport.mjs",
     "stripe:listen": "bash ./scripts/stripe-webhook.sh",
-    "library:build-index": "node ./scripts/build-library-index.mjs"
+    "library:build-index": "node ./scripts/build-library-index.mjs",
+    "test:wizard": "tsx --test tests/wizard/redflags-and-sanitizer.test.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.57.4",
@@ -30,6 +31,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.4",
     "tailwindcss": "^4",
+    "tsx": "^4.20.6",
     "typescript": "^5"
   }
 }
