@@ -200,6 +200,7 @@ Profile
 State & Data
 - Client state: filters, pagination, saved items (local or Supabase-backed)
 - Shared auth/cart using existing Supabase + Stripe hooks
+- Prompt dataset: `/data/prompts/*.json` now supports `contentType`, `audiences`, `languages`, `createdAt`, `updatedAt`; run `npm run library:build-index` after editing to refresh `public/data/prompts.index.json`.
 
 ## 11) Implementation Priority & Milestones
 
@@ -236,4 +237,3 @@ Phase 3: Enhancements (1–2 sprints)
 ---
 
 This roadmap keeps the provided logic intact while deepening it with component inventory, acceptance criteria, analytics, accessibility, and a file-level plan mapped to our current Next.js project structure.
-

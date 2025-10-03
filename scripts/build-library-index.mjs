@@ -17,7 +17,11 @@ const OUT_DIR = path.join(ROOT, 'public', 'data');
  *  tags?: string[],
  *  keywords?: string[],
  *  createdAt?: string,
+ *  updatedAt?: string,
  *  featuredWeight?: number,
+ *  contentType?: string,
+ *  audiences?: string[],
+ *  languages?: string[],
  *  body?: string
  * }} PromptBody
  */

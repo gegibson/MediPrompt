@@ -14,9 +14,12 @@ export type PromptIndexItem = {
   keywords?: string[];
   createdAt?: string; // ISO
   featuredWeight?: number;
+  contentType?: string;
+  audiences?: string[];
+  languages?: string[];
+  updatedAt?: string; // ISO
 };
 
 export type PromptBody = PromptIndexItem & {
   body: string; // full content
 };
-

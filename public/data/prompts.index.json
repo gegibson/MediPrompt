@@ -15,7 +15,15 @@
       "intake"
     ],
     "createdAt": "2024-10-03T00:00:00.000Z",
-    "featuredWeight": 12
+    "updatedAt": "2024-10-03T00:00:00.000Z",
+    "featuredWeight": 12,
+    "contentType": "Guideline",
+    "audiences": [
+      "clinicians"
+    ],
+    "languages": [
+      "en"
+    ]
   },
   {
     "id": "talking-doctor-new-medication",
