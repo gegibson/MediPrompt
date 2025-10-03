@@ -3,7 +3,8 @@
     "id": "primary-care-intake-checklist",
     "title": "Primary Care Intake Checklist",
     "shortDescription": "Organize pre-visit screenings, vitals, and consent reminders before a family medicine appointment.",
-    "categoryId": "primary-care",
+    "categoryId": "talking-to-your-doctor",
+    "subcategory": "preparing-for-appointments",
     "tags": [
       "intake",
       "checklist",
@@ -13,6 +14,20 @@
       "primary care",
       "new patient",
       "intake"
+    ],
+    "patientFacingTags": [
+      "New patient visit",
+      "Annual checkup",
+      "Family doctor",
+      "Physical exam"
+    ],
+    "situationTags": [
+      "before-appointment",
+      "planning-ahead"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
     ],
     "createdAt": "2024-10-03T00:00:00.000Z",
     "updatedAt": "2024-10-03T00:00:00.000Z",

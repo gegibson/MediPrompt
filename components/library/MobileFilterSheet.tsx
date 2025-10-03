@@ -3,8 +3,10 @@
 import { useEffect } from "react";
 
 import {
-  categoryOptions as fallbackCategoryOptions,
   sortOptions,
+  situationOptions as fallbackSituationOptions,
+  audienceTagOptions as fallbackAudienceOptions,
+  categoryOptions as fallbackCategoryOptions,
   type FilterGroupKey,
   type FilterState,
   type FacetOption,
@@ -19,6 +21,10 @@ type MobileFilterSheetProps = {
   onReset: () => void;
   categories?: FacetOption[];
   categoryCounts?: Record<string, number>;
+  situations?: FacetOption[];
+  situationCounts?: Record<string, number>;
+  audiences?: FacetOption[];
+  audienceCounts?: Record<string, number>;
 };
 
 export function MobileFilterSheet({
@@ -30,8 +36,11 @@ export function MobileFilterSheet({
   onReset,
   categories,
   categoryCounts,
+  situations,
+  situationCounts,
+  audiences,
+  audienceCounts,
 }: MobileFilterSheetProps) {
-
   useEffect(() => {
     if (!open) {
       return;
@@ -51,6 +60,10 @@ export function MobileFilterSheet({
   if (!open) {
     return null;
   }
+
+  const categoriesList = categories && categories.length ? categories : fallbackCategoryOptions;
+  const situationsList = situations && situations.length ? situations : fallbackSituationOptions;
+  const audiencesList = audiences && audiences.length ? audiences : fallbackAudienceOptions;
 
   return (
     <div className="fixed inset-0 z-50 flex lg:hidden" role="dialog" aria-modal="true">
@@ -113,12 +126,27 @@ export function MobileFilterSheet({
 
           <MobileFacetGroup
             title="Medical Categories"
-            options={categories && categories.length ? categories : fallbackCategoryOptions}
+            options={categoriesList}
             selected={state.categories}
             counts={categoryCounts}
             onToggle={(value) => onToggle("categories", value)}
           />
 
+          <MobileFacetGroup
+            title="When to Use"
+            options={situationsList}
+            selected={state.situations}
+            counts={situationCounts}
+            onToggle={(value) => onToggle("situations", value)}
+          />
+
+          <MobileFacetGroup
+            title="Who is this for?"
+            options={audiencesList}
+            selected={state.audiences}
+            counts={audienceCounts}
+            onToggle={(value) => onToggle("audiences", value)}
+          />
         </div>
 
         <footer className="space-y-3 border-t border-slate-200 px-5 py-4">
@@ -168,7 +196,9 @@ function MobileFacetGroup({ title, options, selected, onToggle, counts }: Mobile
             />
             <span>
               {option.label}
-              {counts && typeof counts[option.id] === "number" ? ` (${counts[option.id]})` : ""}
+              {counts && typeof counts[option.id] === "number" && counts[option.id] > 0
+                ? ` (${counts[option.id]})`
+                : ""}
             </span>
           </label>
         ))}

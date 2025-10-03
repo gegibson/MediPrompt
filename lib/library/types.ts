@@ -10,8 +10,12 @@ export type PromptIndexItem = {
   title: string;
   shortDescription: string;
   categoryId: string;
+  subcategory?: string;
   tags?: string[];
   keywords?: string[];
+  patientFacingTags?: string[];
+  situationTags?: string[];
+  audienceTags?: string[];
   createdAt?: string; // ISO
   featuredWeight?: number;
   contentType?: string;

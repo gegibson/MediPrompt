@@ -9,6 +9,8 @@ import {
   cloneFilterState,
   createDefaultState,
   sortOptions,
+  situationOptions,
+  audienceTagOptions,
   type FacetOption,
   type FilterGroupKey,
   type FilterState,
@@ -18,7 +20,10 @@ import { MobileFilterSheet } from "@/components/library/MobileFilterSheet";
 import { getCategories, getIndex } from "@/lib/library/dataClient";
 import type { PromptIndexItem } from "@/lib/library/types";
 
-type CardItem = PromptIndexItem & { categoryName: string; categoryIcon?: string };
+type CardItem = PromptIndexItem & {
+  categoryName: string;
+  categoryIcon?: string;
+};
 
 type Resource = {
   id: string;
@@ -27,6 +32,9 @@ type Resource = {
   category: string;
   categoryId: string;
   categoryIcon?: string;
+  patientTags: string[];
+  situationTags: string[];
+  audienceTags: string[];
 };
 
 export default function HealthcareLibraryPage() {
@@ -34,9 +42,10 @@ export default function HealthcareLibraryPage() {
   const [filters, setFilters] = useState<FilterState>(() => createDefaultState());
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [items, setItems] = useState<CardItem[]>([]);
-  const [loading, setLoading] = useState(true);
   const [categories, setCategories] = useState<FacetOption[]>([]);
+  const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+
   const searchParams = useSearchParams();
   const router = useRouter();
   const pathname = usePathname();
@@ -55,11 +64,11 @@ export default function HealthcareLibraryPage() {
           label: cat.name,
         })),
       );
-      const mapped: CardItem[] = index.map((i) => {
-        const cat = catMap.get(i.categoryId);
+      const mapped: CardItem[] = index.map((item) => {
+        const cat = catMap.get(item.categoryId);
         return {
-          ...i,
-          categoryName: cat?.name ?? i.categoryId,
+          ...item,
+          categoryName: cat?.name ?? item.categoryId,
           categoryIcon: cat?.icon,
         };
       });
@@ -76,21 +85,30 @@ export default function HealthcareLibraryPage() {
       return;
     }
     const initialFilters = createDefaultState();
-    const search = searchParams;
-    const qParam = search.get("q") ?? "";
-    const sortParam = search.get("sort");
+    const qParam = searchParams.get("q") ?? "";
+    const sortParam = searchParams.get("sort");
     if (sortParam && sortOptions.some((option) => option.id === sortParam)) {
       initialFilters.sort = sortParam;
     }
-    search.getAll("category").forEach((id) => {
+    searchParams.getAll("category").forEach((id) => {
       if (id) {
         initialFilters.categories.add(id);
+      }
+    });
+    searchParams.getAll("situation").forEach((id) => {
+      if (id) {
+        initialFilters.situations.add(id);
+      }
+    });
+    searchParams.getAll("audience").forEach((id) => {
+      if (id) {
+        initialFilters.audiences.add(id);
       }
     });
     setQuery(qParam);
     setFilters(initialFilters);
     setInitialized(true);
-      }, [searchParams, initialized]);
+  }, [searchParams, initialized]);
 
   const handleSortChange = (sort: string) => {
     setFilters((prev) => ({ ...prev, sort }));
@@ -130,6 +148,16 @@ export default function HealthcareLibraryPage() {
         .sort()
         .forEach((id) => params.append("category", id));
     }
+    if (filters.situations.size) {
+      Array.from(filters.situations)
+        .sort()
+        .forEach((id) => params.append("situation", id));
+    }
+    if (filters.audiences.size) {
+      Array.from(filters.audiences)
+        .sort()
+        .forEach((id) => params.append("audience", id));
+    }
 
     const nextSearch = params.toString();
     if (nextSearch === searchParams.toString()) {
@@ -141,6 +169,22 @@ export default function HealthcareLibraryPage() {
     });
   }, [filters, query, initialized, pathname, router, searchParams, startTransition]);
 
+  const resources = useMemo<Resource[]>(
+    () =>
+      items.map((item) => ({
+        id: item.id,
+        title: item.title,
+        description: item.shortDescription,
+        category: item.categoryName,
+        categoryId: item.categoryId,
+        categoryIcon: item.categoryIcon,
+        patientTags: item.patientFacingTags ?? [],
+        situationTags: item.situationTags ?? [],
+        audienceTags: item.audienceTags ?? [],
+      })),
+    [items],
+  );
+
   const filteredResources = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
@@ -149,25 +193,28 @@ export default function HealthcareLibraryPage() {
         return true;
       }
 
-      return [resource.title, resource.description, resource.category]
+      return [resource.title, resource.description, resource.category, ...resource.patientTags]
         .join(" ")
         .toLowerCase()
         .includes(normalizedQuery);
     };
 
-    let results: Resource[] = items
-      .map((it) => ({
-        id: it.id,
-        title: it.title,
-        description: it.shortDescription,
-        category: it.categoryName,
-        categoryId: it.categoryId,
-        categoryIcon: it.categoryIcon,
-      }))
-      .filter((r) => matchesQuery(r));
+    let results = resources.filter((resource) => matchesQuery(resource));
 
     if (filters.categories.size) {
-      results = results.filter((r) => filters.categories.has(r.categoryId));
+      results = results.filter((resource) => filters.categories.has(resource.categoryId));
+    }
+
+    if (filters.situations.size) {
+      results = results.filter((resource) =>
+        resource.situationTags.some((tag) => filters.situations.has(tag)),
+      );
+    }
+
+    if (filters.audiences.size) {
+      results = results.filter((resource) =>
+        resource.audienceTags.some((tag) => filters.audiences.has(tag)),
+      );
     }
 
     if (filters.sort === "title-asc") {
@@ -177,14 +224,32 @@ export default function HealthcareLibraryPage() {
     }
 
     return results;
-  }, [filters, items, query]);
+  }, [filters, resources, query]);
 
   const categoryCounts = useMemo(() => {
-    return items.reduce<Record<string, number>>((acc, item) => {
-      acc[item.categoryId] = (acc[item.categoryId] ?? 0) + 1;
+    return resources.reduce<Record<string, number>>((acc, resource) => {
+      acc[resource.categoryId] = (acc[resource.categoryId] ?? 0) + 1;
       return acc;
     }, {});
-  }, [items]);
+  }, [resources]);
+
+  const situationCounts = useMemo(() => {
+    return resources.reduce<Record<string, number>>((acc, resource) => {
+      resource.situationTags.forEach((tag) => {
+        acc[tag] = (acc[tag] ?? 0) + 1;
+      });
+      return acc;
+    }, {});
+  }, [resources]);
+
+  const audienceCounts = useMemo(() => {
+    return resources.reduce<Record<string, number>>((acc, resource) => {
+      resource.audienceTags.forEach((tag) => {
+        acc[tag] = (acc[tag] ?? 0) + 1;
+      });
+      return acc;
+    }, {});
+  }, [resources]);
 
   return (
     <div className="bg-[var(--color-surface-subtle)] pb-16 pt-8">
@@ -196,6 +261,10 @@ export default function HealthcareLibraryPage() {
           onReset={handleReset}
           categories={categories}
           categoryCounts={categoryCounts}
+          situations={situationOptions}
+          situationCounts={situationCounts}
+          audiences={audienceTagOptions}
+          audienceCounts={audienceCounts}
         />
 
         <section className="flex-1">
@@ -272,6 +341,10 @@ export default function HealthcareLibraryPage() {
         onReset={handleReset}
         categories={categories}
         categoryCounts={categoryCounts}
+        situations={situationOptions}
+        situationCounts={situationCounts}
+        audiences={audienceTagOptions}
+        audienceCounts={audienceCounts}
       />
     </div>
   );

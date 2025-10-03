@@ -27,24 +27,48 @@ export const sortOptions: SortOption[] = [
 ];
 
 export const categoryOptions: FacetOption[] = [
-  { id: "primary-care", label: "Primary Care" },
-  { id: "pediatrics", label: "Pediatrics" },
-  { id: "mental-health", label: "Mental Health" },
-  { id: "chronic", label: "Chronic Conditions" },
-  { id: "preventive", label: "Preventive Care" },
-  { id: "emergency", label: "Emergency Care" },
-  { id: "specialty", label: "Specialty Care" },
+  { id: "talking-to-your-doctor", label: "Talking to Your Doctor" },
+  { id: "managing-medications", label: "Managing Medications" },
+  { id: "medical-procedures-tests", label: "Procedures & Tests" },
+  { id: "living-with-chronic-conditions", label: "Chronic Conditions" },
+  { id: "life-stages-preventive-care", label: "Life Stages & Prevention" },
+  { id: "healthcare-logistics", label: "Healthcare Logistics" },
+  { id: "mental-health-wellness", label: "Mental Health & Wellness" },
+  { id: "nutrition-lifestyle", label: "Nutrition & Lifestyle" },
+];
+
+export const situationOptions: FacetOption[] = [
+  { id: "before-appointment", label: "Before an appointment" },
+  { id: "after-diagnosis", label: "After receiving a diagnosis" },
+  { id: "starting-treatment", label: "Starting a new treatment" },
+  { id: "experiencing-symptoms", label: "Experiencing symptoms" },
+  { id: "planning-ahead", label: "Planning ahead" },
+  { id: "emergency-preparation", label: "Emergency preparation" },
+  { id: "daily-routine", label: "Daily routine" },
+  { id: "following-up", label: "Following up on care" },
+];
+
+export const audienceTagOptions: FacetOption[] = [
+  { id: "for-myself", label: "For myself" },
+  { id: "for-family-member", label: "For a family member" },
+  { id: "for-child", label: "For a child" },
+  { id: "for-aging-parent", label: "For an aging parent" },
+  { id: "pregnancy-related", label: "Pregnancy-related" },
 ];
 
 export type FilterState = {
   sort: string;
   categories: Set<string>;
+  situations: Set<string>;
+  audiences: Set<string>;
 };
 
 export function createDefaultState(): FilterState {
   return {
     sort: sortOptions[0].id,
     categories: new Set<string>(),
+    situations: new Set<string>(),
+    audiences: new Set<string>(),
   };
 }
 
@@ -52,10 +76,12 @@ export function cloneFilterState(source: FilterState): FilterState {
   return {
     sort: source.sort,
     categories: new Set(source.categories),
+    situations: new Set(source.situations),
+    audiences: new Set(source.audiences),
   };
 }
 
-export type FilterGroupKey = "categories";
+export type FilterGroupKey = "categories" | "situations" | "audiences";
 
 type ActiveBadge = {
   id: string;
@@ -70,14 +96,44 @@ type FilterPanelProps = {
   onReset: () => void;
   categories?: FacetOption[];
   categoryCounts?: Record<string, number>;
+  situations?: FacetOption[];
+  situationCounts?: Record<string, number>;
+  audiences?: FacetOption[];
+  audienceCounts?: Record<string, number>;
 };
 
-export function FilterPanel({ state, onSortChange, onToggle, onReset, categories, categoryCounts }: FilterPanelProps) {
-  const categoriesList = categories && categories.length ? categories : categoryOptions;
+const INITIAL_CATEGORY_DISPLAY = 5;
 
-  const categoryLookup = useMemo(() => {
-    return new Map(categoriesList.map((option) => [option.id, option.label]));
-  }, [categoriesList]);
+export function FilterPanel({
+  state,
+  onSortChange,
+  onToggle,
+  onReset,
+  categories,
+  categoryCounts,
+  situations,
+  situationCounts,
+  audiences,
+  audienceCounts,
+}: FilterPanelProps) {
+  const categoriesList = categories && categories.length ? categories : categoryOptions;
+  const situationsList = situations && situations.length ? situations : situationOptions;
+  const audiencesList = audiences && audiences.length ? audiences : audienceTagOptions;
+
+  const [showAllCategories, setShowAllCategories] = useState(false);
+
+  const categoryLookup = useMemo(
+    () => new Map(categoriesList.map((option) => [option.id, option.label])),
+    [categoriesList],
+  );
+  const situationLookup = useMemo(
+    () => new Map(situationsList.map((option) => [option.id, option.label])),
+    [situationsList],
+  );
+  const audienceLookup = useMemo(
+    () => new Map(audiencesList.map((option) => [option.id, option.label])),
+    [audiencesList],
+  );
 
   const activeBadges = useMemo<ActiveBadge[]>(() => {
     const badges: ActiveBadge[] = [];
@@ -89,23 +145,40 @@ export function FilterPanel({ state, onSortChange, onToggle, onReset, categories
       }
     });
 
+    state.situations.forEach((id) => {
+      const label = situationLookup.get(id);
+      if (label) {
+        badges.push({ id, label, group: "situations" });
+      }
+    });
+
+    state.audiences.forEach((id) => {
+      const label = audienceLookup.get(id);
+      if (label) {
+        badges.push({ id, label, group: "audiences" });
+      }
+    });
+
     return badges;
-  }, [state, categoryLookup]);
+  }, [state, categoryLookup, situationLookup, audienceLookup]);
 
   const removeBadge = (badge: ActiveBadge) => {
     onToggle(badge.group, badge.id);
   };
+
+  const displayedCategories = showAllCategories
+    ? categoriesList
+    : categoriesList.slice(0, INITIAL_CATEGORY_DISPLAY);
+  const canShowMoreCategories = categoriesList.length > INITIAL_CATEGORY_DISPLAY;
 
   return (
     <aside className="hidden w-full max-w-xs lg:block">
       <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
-              Filters
-            </h2>
+            <h2 className="text-lg font-semibold text-[var(--color-foreground)]">Filters</h2>
             <p className="mt-1 text-sm text-[var(--color-muted)]">
-              Narrow the healthcare library by specialty, format, and audience.
+              Narrow the prompt library by topic, timing, and audience.
             </p>
           </div>
           <button
@@ -159,23 +232,63 @@ export function FilterPanel({ state, onSortChange, onToggle, onReset, categories
 
           <FilterSection title="Medical Categories" defaultOpen>
             <div className="space-y-2">
-              {categoriesList.map((option) => {
-                const count = categoryCounts && Object.prototype.hasOwnProperty.call(categoryCounts, option.id)
-                  ? categoryCounts[option.id]
-                  : undefined;
+              {displayedCategories.map((option) => {
+                const count = categoryCounts?.[option.id];
                 return (
-                <FacetCheckbox
-                  key={option.id}
-                  checked={state.categories.has(option.id)}
-                  label={option.label}
-                  count={count}
-                  onToggle={() => onToggle("categories", option.id)}
-                />
+                  <FacetCheckbox
+                    key={option.id}
+                    checked={state.categories.has(option.id)}
+                    label={option.label}
+                    count={count}
+                    onToggle={() => onToggle("categories", option.id)}
+                  />
+                );
+              })}
+            </div>
+            {canShowMoreCategories ? (
+              <button
+                type="button"
+                onClick={() => setShowAllCategories((prev) => !prev)}
+                className="mt-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-primary)] transition hover:text-[var(--color-accent)]"
+              >
+                {showAllCategories ? "Show fewer" : "Show more"}
+              </button>
+            ) : null}
+          </FilterSection>
+
+          <FilterSection title="When to Use">
+            <div className="space-y-2">
+              {situationsList.map((option) => {
+                const count = situationCounts?.[option.id];
+                return (
+                  <FacetCheckbox
+                    key={option.id}
+                    checked={state.situations.has(option.id)}
+                    label={option.label}
+                    count={count}
+                    onToggle={() => onToggle("situations", option.id)}
+                  />
                 );
               })}
             </div>
           </FilterSection>
 
+          <FilterSection title="Who is this for?">
+            <div className="space-y-2">
+              {audiencesList.map((option) => {
+                const count = audienceCounts?.[option.id];
+                return (
+                  <FacetCheckbox
+                    key={option.id}
+                    checked={state.audiences.has(option.id)}
+                    label={option.label}
+                    count={count}
+                    onToggle={() => onToggle("audiences", option.id)}
+                  />
+                );
+              })}
+            </div>
+          </FilterSection>
         </div>
       </div>
     </aside>
@@ -233,7 +346,7 @@ function FacetCheckbox({ label, checked, onToggle, count }: FacetCheckboxProps) 
       />
       <span>
         {label}
-        {typeof count === "number" ? ` (${count})` : ""}
+        {typeof count === "number" && count > 0 ? ` (${count})` : ""}
       </span>
     </label>
   );
