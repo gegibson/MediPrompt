@@ -18,6 +18,7 @@ export type PromptIndexItem = {
   audienceTags?: string[];
   searchBoost?: number;
   createdAt?: string; // ISO
+  popularity?: number;
   featuredWeight?: number;
   contentType?: string;
   audiences?: string[];

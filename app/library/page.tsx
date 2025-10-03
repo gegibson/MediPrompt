@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -37,7 +37,11 @@ type Resource = {
   situationTags: string[];
   audienceTags: string[];
   createdAt?: string;
+  popularity?: number;
 };
+
+const PAGE_SIZE = 12;
+const POPULAR_QUERIES = ["intake", "pediatrics", "follow-up"];
 
 export default function HealthcareLibraryPage() {
   const [query, setQuery] = useState("");
@@ -47,8 +51,11 @@ export default function HealthcareLibraryPage() {
   const [categories, setCategories] = useState<FacetOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const lastFilterEvent = useRef<string>("");
   const lastZeroResultKey = useRef<string>("");
+  const isMountedRef = useRef(true);
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -56,19 +63,35 @@ export default function HealthcareLibraryPage() {
   const [, startTransition] = useTransition();
 
   useEffect(() => {
-    let mounted = true;
-    (async () => {
-      setLoading(true);
-      const [index, cats] = await Promise.all([getIndex(), getCategories()]);
-      if (!mounted) return;
-      const catMap = new Map(cats.map((c) => [c.id, c]));
+    isMountedRef.current = true;
+    return () => {
+      isMountedRef.current = false;
+    };
+  }, []);
+
+  const loadLibrary = useCallback(async () => {
+    if (!isMountedRef.current) {
+      return;
+    }
+    setLoading(true);
+    setLoadError(null);
+    try {
+      const [indexData, categoryData] = await Promise.all([getIndex(), getCategories()]);
+      if (!isMountedRef.current) {
+        return;
+      }
+      if (!indexData || !categoryData) {
+        setLoadError("We couldn't load the prompt library. Please try again.");
+        return;
+      }
+      const catMap = new Map(categoryData.map((category) => [category.id, category] as const));
       setCategories(
-        cats.map((cat) => ({
+        categoryData.map((cat) => ({
           id: cat.id,
           label: cat.name,
         })),
       );
-      const mapped: CardItem[] = index.map((item) => {
+      const mapped: CardItem[] = indexData.map((item) => {
         const cat = catMap.get(item.categoryId);
         return {
           ...item,
@@ -77,12 +100,21 @@ export default function HealthcareLibraryPage() {
         };
       });
       setItems(mapped);
-      setLoading(false);
-    })();
-    return () => {
-      mounted = false;
-    };
+    } catch {
+      if (!isMountedRef.current) {
+        return;
+      }
+      setLoadError("We couldn't load the prompt library. Please try again.");
+    } finally {
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
+    }
   }, []);
+
+  useEffect(() => {
+    loadLibrary();
+  }, [loadLibrary]);
 
   useEffect(() => {
     if (initialized) {
@@ -109,6 +141,10 @@ export default function HealthcareLibraryPage() {
         initialFilters.audiences.add(id);
       }
     });
+    const pageParam = Number.parseInt(searchParams.get("page") ?? "1", 10);
+    if (!Number.isNaN(pageParam) && pageParam > 0) {
+      setCurrentPage(pageParam);
+    }
     setQuery(qParam);
     setFilters(initialFilters);
     setInitialized(true);
@@ -116,6 +152,7 @@ export default function HealthcareLibraryPage() {
 
   const handleSortChange = (sort: string) => {
     setFilters((prev) => ({ ...prev, sort }));
+    setCurrentPage(1);
   };
 
   const handleToggle = (group: FilterGroupKey, value: string) => {
@@ -128,11 +165,23 @@ export default function HealthcareLibraryPage() {
       }
       return next;
     });
+    setCurrentPage(1);
   };
 
   const handleReset = () => {
     setFilters(createDefaultState());
     setQuery("");
+    setCurrentPage(1);
+  };
+
+  const handleQueryChange = (value: string) => {
+    setQuery(value);
+    setCurrentPage(1);
+  };
+
+  const handleSuggestionSelect = (value: string) => {
+    setFilters(createDefaultState());
+    handleQueryChange(value);
   };
 
   useEffect(() => {
@@ -162,6 +211,9 @@ export default function HealthcareLibraryPage() {
         .sort()
         .forEach((id) => params.append("audience", id));
     }
+    if (currentPage > 1) {
+      params.set("page", currentPage.toString());
+    }
 
     const nextSearch = params.toString();
     if (nextSearch === searchParams.toString()) {
@@ -171,7 +223,7 @@ export default function HealthcareLibraryPage() {
     startTransition(() => {
       router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname, { scroll: false });
     });
-  }, [filters, query, initialized, pathname, router, searchParams, startTransition]);
+  }, [currentPage, filters, query, initialized, pathname, router, searchParams, startTransition]);
 
   const resources = useMemo<Resource[]>(
     () =>
@@ -186,6 +238,7 @@ export default function HealthcareLibraryPage() {
         situationTags: item.situationTags ?? [],
         audienceTags: item.audienceTags ?? [],
         createdAt: item.createdAt,
+        popularity: item.popularity,
       })),
     [items],
   );
@@ -241,11 +294,60 @@ export default function HealthcareLibraryPage() {
       if (filters.sort === "recent") {
         return (Date.parse(b.resource.createdAt ?? "") || 0) - (Date.parse(a.resource.createdAt ?? "") || 0);
       }
+      if (filters.sort === "popular") {
+        const popA = a.resource.popularity ?? 0;
+        const popB = b.resource.popularity ?? 0;
+        if (popB !== popA) {
+          return popB - popA;
+        }
+        return (Date.parse(b.resource.createdAt ?? "") || 0) - (Date.parse(a.resource.createdAt ?? "") || 0);
+      }
       return b.score - a.score;
     });
 
     return sorted.map((entry) => entry.resource);
   }, [filters, resources, query]);
+
+  const totalResults = filteredResources.length;
+  const totalPages = Math.max(1, Math.ceil(totalResults / PAGE_SIZE));
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, initialized, totalPages]);
+
+  const paginatedResources = useMemo(() => {
+    const start = (currentPage - 1) * PAGE_SIZE;
+    return filteredResources.slice(start, start + PAGE_SIZE);
+  }, [currentPage, filteredResources]);
+
+  const startIndex = (currentPage - 1) * PAGE_SIZE;
+  const endIndex = Math.min(startIndex + paginatedResources.length, totalResults);
+  const showingStart = totalResults ? startIndex + 1 : 0;
+  const showingEnd = totalResults ? endIndex : 0;
+
+  const hasActiveFilters = useMemo(() => {
+    if (query.trim()) {
+      return true;
+    }
+    if (filters.sort && filters.sort !== sortOptions[0].id) {
+      return true;
+    }
+    if (filters.categories.size || filters.situations.size || filters.audiences.size) {
+      return true;
+    }
+    return false;
+  }, [filters, query]);
+
+  const handleRetry = () => {
+    if (!loading) {
+      loadLibrary();
+    }
+  };
 
   const categoryCounts = useMemo(() => {
     return resources.reduce<Record<string, number>>((acc, resource) => {
@@ -342,15 +444,30 @@ export default function HealthcareLibraryPage() {
         <section className="flex-1">
           <LibraryHero
             query={query}
-            onQueryChange={setQuery}
+            onQueryChange={handleQueryChange}
             onOpenFilters={() => setIsMobileFiltersOpen(true)}
           />
 
           <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
             {loading ? (
               <p className="text-sm text-[var(--color-muted)]">Loading prompts…</p>
+            ) : loadError ? (
+              <div className="col-span-full overflow-hidden rounded-2xl border border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto flex max-w-md flex-col items-center gap-4 text-sm text-[var(--color-muted)]">
+                  <p className="text-base font-semibold text-[var(--color-foreground)]">Something went wrong</p>
+                  <p>{loadError}</p>
+                  <button
+                    type="button"
+                    onClick={handleRetry}
+                    disabled={loading}
+                    className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[var(--color-primary)]/90 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Try again
+                  </button>
+                </div>
+              </div>
             ) : filteredResources.length ? (
-              filteredResources.map((resource) => (
+              paginatedResources.map((resource) => (
                 <article
                   key={resource.id}
                   className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:shadow-md"
@@ -398,9 +515,69 @@ export default function HealthcareLibraryPage() {
                 </article>
               ))
             ) : (
-              <p className="text-sm text-[var(--color-muted)]">No prompts match your filters.</p>
+              <div className="col-span-full overflow-hidden rounded-2xl border border-dashed border-slate-200 bg-white p-8 text-center shadow-sm">
+                <div className="mx-auto flex max-w-xl flex-col items-center gap-4 text-sm text-[var(--color-muted)]">
+                  <p className="text-base font-semibold text-[var(--color-foreground)]">No prompts match your filters</p>
+                  <p>Try a different search or adjust your filters to discover more clinician-built prompts.</p>
+                  {hasActiveFilters && (
+                    <button
+                      type="button"
+                      onClick={handleReset}
+                      className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2 text-sm font-semibold text-[var(--color-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                    >
+                      Clear filters
+                    </button>
+                  )}
+                  <div className="w-full">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-[var(--color-muted)]">Popular searches</p>
+                    <div className="mt-3 flex flex-wrap justify-center gap-2">
+                      {POPULAR_QUERIES.map((suggestion) => (
+                        <button
+                          key={suggestion}
+                          type="button"
+                          onClick={() => handleSuggestionSelect(suggestion)}
+                          className="inline-flex items-center gap-2 rounded-full bg-[var(--color-primary)]/10 px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/15 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                        >
+                          {suggestion}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
+
+          {!loading && !loadError && filteredResources.length > 0 && (
+            <div className="mt-6 flex flex-col items-center justify-between gap-4 text-sm text-[var(--color-muted)] sm:flex-row">
+              <span>
+                Showing {showingStart}–{showingEnd} of {totalResults} prompts
+              </span>
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((prev) => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 font-semibold text-[var(--color-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Go to previous page"
+                >
+                  Previous
+                </button>
+                <span className="font-medium text-[var(--color-foreground)]">
+                  Page {currentPage} of {totalPages}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => setCurrentPage((prev) => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-4 py-2 font-semibold text-[var(--color-muted)] transition hover:border-[var(--color-primary)] hover:text-[var(--color-foreground)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)] disabled:cursor-not-allowed disabled:opacity-50"
+                  aria-label="Go to next page"
+                >
+                  Next
+                </button>
+              </div>
+            </div>
+          )}
         </section>
       </div>
 

@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 type LibraryHeroProps = {
   query: string;
   onQueryChange: (value: string) => void;
@@ -84,6 +86,12 @@ export function LibraryHero({ query, onQueryChange, onOpenFilters }: LibraryHero
           </svg>
           Filters
         </button>
+        <Link
+          href="/library/categories"
+          className="hidden text-sm font-semibold text-[var(--color-primary)] transition hover:text-[var(--color-accent)] sm:inline-flex"
+        >
+          Browse categories
+        </Link>
       </div>
     </header>
   );

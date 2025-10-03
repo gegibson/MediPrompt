@@ -1,3 +1,5 @@
+import { trackEvent } from "@/lib/analytics/track";
+
 export type LibraryFilterEvent = {
   query: string;
   categories: string[];
@@ -13,20 +15,49 @@ export type LibraryZeroResultEvent = {
   audiences: string[];
 };
 
-const shouldLog = () => typeof window !== "undefined" && process.env.NEXT_PUBLIC_ANALYTICS !== "off";
+export type LibraryPromptEvent = {
+  promptId: string;
+  categoryId?: string | null;
+};
+
+export type LibraryQuickLaunchEvent = LibraryPromptEvent & {
+  destination: string;
+};
+
+function safeString(value: string | undefined | null) {
+  return value ? String(value) : undefined;
+}
 
 export function trackLibraryFilters(event: LibraryFilterEvent) {
-  if (!shouldLog()) return;
-  if (process.env.NODE_ENV !== "production") {
-    console.debug("[analytics] library_filters", event);
-  }
-  // TODO: replace with real analytics transport
+  trackEvent("library_filters", {
+    query_length: event.query.trim().length,
+    category_count: event.categories.length,
+    situation_count: event.situations.length,
+    audience_count: event.audiences.length,
+    sort: event.sort,
+  });
 }
 
 export function trackLibraryZeroResult(event: LibraryZeroResultEvent) {
-  if (!shouldLog()) return;
-  if (process.env.NODE_ENV !== "production") {
-    console.debug("[analytics] library_zero_results", event);
-  }
-  // TODO: replace with real analytics transport
+  trackEvent("library_zero_results", {
+    query_length: event.query.trim().length,
+    category_count: event.categories.length,
+    situation_count: event.situations.length,
+    audience_count: event.audiences.length,
+  });
+}
+
+export function trackLibraryPromptCopied(event: LibraryPromptEvent) {
+  trackEvent("library_prompt_copied", {
+    prompt_id: event.promptId,
+    category_id: safeString(event.categoryId),
+  });
+}
+
+export function trackLibraryQuickLaunch(event: LibraryQuickLaunchEvent) {
+  trackEvent("library_quick_launch", {
+    prompt_id: event.promptId,
+    category_id: safeString(event.categoryId),
+    destination: event.destination,
+  });
 }

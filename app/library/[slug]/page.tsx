@@ -166,7 +166,12 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
               {prompt.shortDescription}
             </p>
             <div className="flex flex-wrap items-center gap-3">
-              <PromptActionPanel promptText={prompt.body} destinations={LLM_DESTINATIONS} />
+              <PromptActionPanel
+                promptText={prompt.body}
+                destinations={LLM_DESTINATIONS}
+                promptId={prompt.id}
+                categoryId={prompt.categoryId}
+              />
               <SharePromptButton url={shareUrl} />
               <Link
                 href="/library"

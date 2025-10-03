@@ -35,3 +35,11 @@ export const getServerPromptBody = cache(async (id: string): Promise<PromptBody 
     return null;
   }
 });
+
+export const getServerCategoryCounts = cache(async (): Promise<Record<string, number>> => {
+  const index = await getServerPromptIndex();
+  return index.reduce<Record<string, number>>((acc, item) => {
+    acc[item.categoryId] = (acc[item.categoryId] ?? 0) + 1;
+    return acc;
+  }, {});
+});

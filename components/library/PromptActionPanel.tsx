@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 
 import { CopyPromptButton } from "./CopyPromptButton";
+import { trackLibraryPromptCopied, trackLibraryQuickLaunch } from "@/lib/analytics/events";
 
 type Destination = {
   label: string;
@@ -13,9 +14,11 @@ type Destination = {
 type PromptActionPanelProps = {
   promptText: string;
   destinations: Destination[];
+  promptId: string;
+  categoryId?: string;
 };
 
-export function PromptActionPanel({ promptText, destinations }: PromptActionPanelProps) {
+export function PromptActionPanel({ promptText, destinations, promptId, categoryId }: PromptActionPanelProps) {
   const [showQuickLinks, setShowQuickLinks] = useState(false);
 
   useEffect(() => {
@@ -28,9 +31,18 @@ export function PromptActionPanel({ promptText, destinations }: PromptActionPane
     return () => window.clearTimeout(timer);
   }, [showQuickLinks]);
 
+  const handleCopy = () => {
+    trackLibraryPromptCopied({ promptId, categoryId });
+    setShowQuickLinks(true);
+  };
+
+  const handleDestinationClick = (destination: Destination) => {
+    trackLibraryQuickLaunch({ promptId, categoryId, destination: destination.label });
+  };
+
   return (
     <div className="relative inline-flex flex-col items-start">
-      <CopyPromptButton text={promptText} onCopy={() => setShowQuickLinks(true)} />
+      <CopyPromptButton text={promptText} onCopy={handleCopy} />
       {showQuickLinks ? (
         <div
           role="status"
@@ -47,6 +59,7 @@ export function PromptActionPanel({ promptText, destinations }: PromptActionPane
                 style={{ background: destination.background }}
                 className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 aria-label={`Open ${destination.label} in a new tab`}
+                onClick={() => handleDestinationClick(destination)}
               >
                 <span className="flex-1 text-left">{destination.label}</span>
                 <svg

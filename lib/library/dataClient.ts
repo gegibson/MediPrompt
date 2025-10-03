@@ -8,7 +8,9 @@ const BODY_URL = (id: string) => `/data/prompts/${encodeURIComponent(id)}.json`;
 
 // Module-level caches (in-memory, client-only)
 let categoriesCache: LibraryCategory[] | null = null;
+let categoriesLoaded = false;
 let indexCache: PromptIndexItem[] | null = null;
+let indexLoaded = false;
 
 const BODY_CACHE_MAX = 20;
 const bodyCache = new Map<string, PromptBody>();
@@ -34,22 +36,41 @@ async function fetchJson<T>(url: string): Promise<T | null> {
   }
 }
 
-export async function getCategories(): Promise<LibraryCategory[]> {
-  if (categoriesCache) return categoriesCache;
+export async function getCategories(): Promise<LibraryCategory[] | null> {
+  if (categoriesLoaded) {
+    return categoriesCache;
+  }
   const data = await fetchJson<LibraryCategory[]>(CATEGORIES_URL);
-  categoriesCache = Array.isArray(data) ? data : [];
-  return categoriesCache;
+  if (Array.isArray(data)) {
+    categoriesCache = data;
+    categoriesLoaded = true;
+    return categoriesCache;
+  }
+  categoriesCache = null;
+  categoriesLoaded = false;
+  return null;
 }
 
-export async function getIndex(): Promise<PromptIndexItem[]> {
-  if (indexCache) return indexCache;
+export async function getIndex(): Promise<PromptIndexItem[] | null> {
+  if (indexLoaded) {
+    return indexCache;
+  }
   const data = await fetchJson<PromptIndexItem[]>(INDEX_URL);
-  indexCache = Array.isArray(data) ? data : [];
-  return indexCache;
+  if (Array.isArray(data)) {
+    indexCache = data;
+    indexLoaded = true;
+    return indexCache;
+  }
+  indexCache = null;
+  indexLoaded = false;
+  return null;
 }
 
 export async function getCategoryCounts(): Promise<Record<string, number>> {
   const index = await getIndex();
+  if (!index) {
+    return {};
+  }
   return index.reduce<Record<string, number>>((acc, item) => {
     acc[item.categoryId] = (acc[item.categoryId] ?? 0) + 1;
     return acc;
@@ -58,11 +79,17 @@ export async function getCategoryCounts(): Promise<Record<string, number>> {
 
 export async function getByCategory(categoryId: string): Promise<PromptIndexItem[]> {
   const index = await getIndex();
+  if (!index) {
+    return [];
+  }
   return index.filter((i) => i.categoryId === categoryId);
 }
 
 export async function getById(id: string): Promise<PromptIndexItem | null> {
   const index = await getIndex();
+  if (!index) {
+    return null;
+  }
   return index.find((i) => i.id === id) ?? null;
 }
 

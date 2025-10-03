@@ -20,6 +20,7 @@ const OUT_DIR = path.join(ROOT, 'public', 'data');
  *  situationTags?: string[],
  *  audienceTags?: string[],
  *  createdAt?: string,
+ *  popularity?: number,
  *  updatedAt?: string,
  *  featuredWeight?: number,
  *  contentType?: string,
