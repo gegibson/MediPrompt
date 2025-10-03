@@ -4,7 +4,7 @@ import { useEffect } from "react";
 
 import {
   audienceOptions,
-  categoryOptions,
+  categoryOptions as fallbackCategoryOptions,
   contentTypeOptions,
   languageOptions,
   sortOptions,
@@ -20,6 +20,8 @@ type MobileFilterSheetProps = {
   onSortChange: (sort: string) => void;
   onToggle: (group: FilterGroupKey, value: string) => void;
   onReset: () => void;
+  categories?: FacetOption[];
+  categoryCounts?: Record<string, number>;
 };
 
 export function MobileFilterSheet({
@@ -29,6 +31,8 @@ export function MobileFilterSheet({
   onSortChange,
   onToggle,
   onReset,
+  categories,
+  categoryCounts,
 }: MobileFilterSheetProps) {
 
   useEffect(() => {
@@ -112,8 +116,9 @@ export function MobileFilterSheet({
 
           <MobileFacetGroup
             title="Medical Categories"
-            options={categoryOptions}
+            options={categories && categories.length ? categories : fallbackCategoryOptions}
             selected={state.categories}
+            counts={categoryCounts}
             onToggle={(value) => onToggle("categories", value)}
           />
 
@@ -165,9 +170,10 @@ type MobileFacetGroupProps = {
   options: FacetOption[];
   selected: Set<string>;
   onToggle: (value: string) => void;
+  counts?: Record<string, number>;
 };
 
-function MobileFacetGroup({ title, options, selected, onToggle }: MobileFacetGroupProps) {
+function MobileFacetGroup({ title, options, selected, onToggle, counts }: MobileFacetGroupProps) {
   return (
     <section className="mt-6">
       <h3 className="text-sm font-semibold text-[var(--color-foreground)]">{title}</h3>
@@ -183,7 +189,10 @@ function MobileFacetGroup({ title, options, selected, onToggle }: MobileFacetGro
               onChange={() => onToggle(option.id)}
               className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
             />
-            <span>{option.label}</span>
+            <span>
+              {option.label}
+              {counts && typeof counts[option.id] === "number" ? ` (${counts[option.id]})` : ""}
+            </span>
           </label>
         ))}
       </div>

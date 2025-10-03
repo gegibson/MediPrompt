@@ -1,12 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
   FilterPanel,
   cloneFilterState,
   createDefaultState,
+  sortOptions,
+  type FacetOption,
   type FilterGroupKey,
   type FilterState,
 } from "@/components/library/FilterPanel";
@@ -32,6 +35,12 @@ export default function HealthcareLibraryPage() {
   const [isMobileFiltersOpen, setIsMobileFiltersOpen] = useState(false);
   const [items, setItems] = useState<CardItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [categories, setCategories] = useState<FacetOption[]>([]);
+  const [initialized, setInitialized] = useState(false);
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const pathname = usePathname();
+  const [, startTransition] = useTransition();
 
   useEffect(() => {
     let mounted = true;
@@ -40,6 +49,12 @@ export default function HealthcareLibraryPage() {
       const [index, cats] = await Promise.all([getIndex(), getCategories()]);
       if (!mounted) return;
       const catMap = new Map(cats.map((c) => [c.id, c]));
+      setCategories(
+        cats.map((cat) => ({
+          id: cat.id,
+          label: cat.name,
+        })),
+      );
       const mapped: CardItem[] = index.map((i) => {
         const cat = catMap.get(i.categoryId);
         return {
@@ -55,6 +70,27 @@ export default function HealthcareLibraryPage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    if (initialized) {
+      return;
+    }
+    const initialFilters = createDefaultState();
+    const search = searchParams;
+    const qParam = search.get("q") ?? "";
+    const sortParam = search.get("sort");
+    if (sortParam && sortOptions.some((option) => option.id === sortParam)) {
+      initialFilters.sort = sortParam;
+    }
+    search.getAll("category").forEach((id) => {
+      if (id) {
+        initialFilters.categories.add(id);
+      }
+    });
+    setQuery(qParam);
+    setFilters(initialFilters);
+    setInitialized(true);
+      }, [searchParams, initialized]);
 
   const handleSortChange = (sort: string) => {
     setFilters((prev) => ({ ...prev, sort }));
@@ -74,7 +110,36 @@ export default function HealthcareLibraryPage() {
 
   const handleReset = () => {
     setFilters(createDefaultState());
+    setQuery("");
   };
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+    const params = new URLSearchParams();
+    const trimmedQuery = query.trim();
+    if (trimmedQuery) {
+      params.set("q", trimmedQuery);
+    }
+    if (filters.sort && filters.sort !== sortOptions[0].id) {
+      params.set("sort", filters.sort);
+    }
+    if (filters.categories.size) {
+      Array.from(filters.categories)
+        .sort()
+        .forEach((id) => params.append("category", id));
+    }
+
+    const nextSearch = params.toString();
+    if (nextSearch === searchParams.toString()) {
+      return;
+    }
+
+    startTransition(() => {
+      router.replace(nextSearch ? `${pathname}?${nextSearch}` : pathname, { scroll: false });
+    });
+  }, [filters, query, initialized, pathname, router, searchParams, startTransition]);
 
   const filteredResources = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -114,6 +179,13 @@ export default function HealthcareLibraryPage() {
     return results;
   }, [filters, items, query]);
 
+  const categoryCounts = useMemo(() => {
+    return items.reduce<Record<string, number>>((acc, item) => {
+      acc[item.categoryId] = (acc[item.categoryId] ?? 0) + 1;
+      return acc;
+    }, {});
+  }, [items]);
+
   return (
     <div className="bg-[var(--color-surface-subtle)] pb-16 pt-8">
       <div className="mx-auto flex max-w-6xl flex-col gap-8 px-4 lg:flex-row lg:px-6">
@@ -122,6 +194,8 @@ export default function HealthcareLibraryPage() {
           onSortChange={handleSortChange}
           onToggle={handleToggle}
           onReset={handleReset}
+          categories={categories}
+          categoryCounts={categoryCounts}
         />
 
         <section className="flex-1">
@@ -196,6 +270,8 @@ export default function HealthcareLibraryPage() {
         onSortChange={handleSortChange}
         onToggle={handleToggle}
         onReset={handleReset}
+        categories={categories}
+        categoryCounts={categoryCounts}
       />
     </div>
   );

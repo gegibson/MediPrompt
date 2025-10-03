@@ -99,16 +99,24 @@ type FilterPanelProps = {
   onSortChange: (sort: string) => void;
   onToggle: (group: FilterGroupKey, value: string) => void;
   onReset: () => void;
+  categories?: FacetOption[];
+  categoryCounts?: Record<string, number>;
 };
 
-export function FilterPanel({ state, onSortChange, onToggle, onReset }: FilterPanelProps) {
+export function FilterPanel({ state, onSortChange, onToggle, onReset, categories, categoryCounts }: FilterPanelProps) {
+  const categoriesList = categories && categories.length ? categories : categoryOptions;
+
+  const categoryLookup = useMemo(() => {
+    return new Map(categoriesList.map((option) => [option.id, option.label]));
+  }, [categoriesList]);
+
   const activeBadges = useMemo<ActiveBadge[]>(() => {
     const badges: ActiveBadge[] = [];
 
     state.categories.forEach((id) => {
-      const match = categoryOptions.find((option) => option.id === id);
-      if (match) {
-        badges.push({ id, label: match.label, group: "categories" });
+      const label = categoryLookup.get(id);
+      if (label) {
+        badges.push({ id, label, group: "categories" });
       }
     });
 
@@ -134,7 +142,7 @@ export function FilterPanel({ state, onSortChange, onToggle, onReset }: FilterPa
     });
 
     return badges;
-  }, [state]);
+  }, [state, categoryLookup]);
 
   const removeBadge = (badge: ActiveBadge) => {
     onToggle(badge.group, badge.id);
@@ -203,14 +211,20 @@ export function FilterPanel({ state, onSortChange, onToggle, onReset }: FilterPa
 
           <FilterSection title="Medical Categories" defaultOpen>
             <div className="space-y-2">
-              {categoryOptions.map((option) => (
+              {categoriesList.map((option) => {
+                const count = categoryCounts && Object.prototype.hasOwnProperty.call(categoryCounts, option.id)
+                  ? categoryCounts[option.id]
+                  : undefined;
+                return (
                 <FacetCheckbox
                   key={option.id}
                   checked={state.categories.has(option.id)}
                   label={option.label}
+                  count={count}
                   onToggle={() => onToggle("categories", option.id)}
                 />
-              ))}
+                );
+              })}
             </div>
           </FilterSection>
 
@@ -295,9 +309,10 @@ type FacetCheckboxProps = {
   label: string;
   checked: boolean;
   onToggle: () => void;
+  count?: number;
 };
 
-function FacetCheckbox({ label, checked, onToggle }: FacetCheckboxProps) {
+function FacetCheckbox({ label, checked, onToggle, count }: FacetCheckboxProps) {
   return (
     <label className="flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 text-sm text-[var(--color-foreground)] transition hover:bg-[var(--color-surface-subtle)]">
       <input
@@ -306,7 +321,10 @@ function FacetCheckbox({ label, checked, onToggle }: FacetCheckboxProps) {
         onChange={onToggle}
         className="h-4 w-4 rounded border-slate-300 text-[var(--color-primary)] focus:ring-[var(--color-primary)]"
       />
-      <span>{label}</span>
+      <span>
+        {label}
+        {typeof count === "number" ? ` (${count})` : ""}
+      </span>
     </label>
   );
 }
