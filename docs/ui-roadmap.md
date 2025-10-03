@@ -201,6 +201,7 @@ State & Data
 - Client state: filters, pagination, saved items (local or Supabase-backed)
 - Shared auth/cart using existing Supabase + Stripe hooks
 - Prompt dataset: `/data/prompts/*.json` now supports `contentType`, `audiences`, `languages`, `createdAt`, `updatedAt`; run `npm run library:build-index` after editing to refresh `public/data/prompts.index.json`.
+- Analytics stubs: `lib/analytics/events.ts` logs filter usage and zero-result searches in development; swap in production telemetry when ready.
 - Prompt metadata fields (MVP):
   - `categoryId` (one of the eight patient journey categories)
   - `subcategory` (optional string for future grouping)

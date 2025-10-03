@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import {
@@ -19,6 +19,7 @@ import { LibraryHero } from "@/components/library/LibraryHero";
 import { MobileFilterSheet } from "@/components/library/MobileFilterSheet";
 import { getCategories, getIndex } from "@/lib/library/dataClient";
 import type { PromptIndexItem } from "@/lib/library/types";
+import { trackLibraryFilters, trackLibraryZeroResult } from "@/lib/analytics/events";
 
 type CardItem = PromptIndexItem & {
   categoryName: string;
@@ -46,6 +47,8 @@ export default function HealthcareLibraryPage() {
   const [categories, setCategories] = useState<FacetOption[]>([]);
   const [loading, setLoading] = useState(true);
   const [initialized, setInitialized] = useState(false);
+  const lastFilterEvent = useRef<string>("");
+  const lastZeroResultKey = useRef<string>("");
 
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -268,6 +271,57 @@ export default function HealthcareLibraryPage() {
       return acc;
     }, {});
   }, [resources]);
+
+  const filterSnapshotKey = useMemo(() => {
+    const snapshot = {
+      categories: Array.from(filters.categories).sort(),
+      situations: Array.from(filters.situations).sort(),
+      audiences: Array.from(filters.audiences).sort(),
+      sort: filters.sort,
+    };
+    return JSON.stringify(snapshot);
+  }, [filters]);
+
+  useEffect(() => {
+    if (!initialized) {
+      return;
+    }
+    if (filterSnapshotKey === lastFilterEvent.current) {
+      return;
+    }
+    lastFilterEvent.current = filterSnapshotKey;
+    trackLibraryFilters({
+      query,
+      categories: Array.from(filters.categories),
+      situations: Array.from(filters.situations),
+      audiences: Array.from(filters.audiences),
+      sort: filters.sort,
+    });
+  }, [filterSnapshotKey, filters, initialized, query]);
+
+  useEffect(() => {
+    if (!initialized || loading) {
+      return;
+    }
+    const normalizedQuery = query.trim();
+    if (!normalizedQuery || filteredResources.length) {
+      lastZeroResultKey.current = "";
+      return;
+    }
+    const key = `${normalizedQuery}|${Array.from(filters.categories).sort().join(",")}|${Array.from(filters.situations)
+      .sort()
+      .join(",")}|${Array.from(filters.audiences).sort().join(",")}`;
+    if (key === lastZeroResultKey.current) {
+      return;
+    }
+    lastZeroResultKey.current = key;
+    trackLibraryZeroResult({
+      query: normalizedQuery,
+      categories: Array.from(filters.categories),
+      situations: Array.from(filters.situations),
+      audiences: Array.from(filters.audiences),
+    });
+  }, [filteredResources, filters, initialized, loading, query]);
 
   return (
     <div className="bg-[var(--color-surface-subtle)] pb-16 pt-8">

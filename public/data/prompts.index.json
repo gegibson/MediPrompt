@@ -44,7 +44,8 @@
     "id": "talking-doctor-new-medication",
     "title": "How to Ask About a New Medication",
     "shortDescription": "Prepare privacy-conscious questions before starting a prescribed medicine.",
-    "categoryId": "talking-doctor",
+    "categoryId": "talking-to-your-doctor",
+    "subcategory": "medication-questions",
     "tags": [
       "medication",
       "doctor-visit",
@@ -55,14 +56,29 @@
       "side effects",
       "interactions"
     ],
+    "patientFacingTags": [
+      "New prescription",
+      "Doctor questions",
+      "Medication plan"
+    ],
+    "situationTags": [
+      "before-appointment",
+      "starting-treatment"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-01T00:00:00.000Z",
+    "updatedAt": "2024-09-01T00:00:00.000Z",
     "featuredWeight": 10
   },
   {
     "id": "medication-management-new-inhaler",
     "title": "Reviewing a New Asthma Inhaler",
     "shortDescription": "Clarify dosing, timing, and technique for a recently prescribed inhaler.",
-    "categoryId": "medication-management",
+    "categoryId": "managing-medications",
+    "subcategory": "respiratory",
     "tags": [
       "asthma",
       "medication",
@@ -73,14 +89,29 @@
       "controller",
       "rescue"
     ],
+    "patientFacingTags": [
+      "Asthma inhaler",
+      "Dose timing",
+      "Spacer technique"
+    ],
+    "situationTags": [
+      "starting-treatment",
+      "daily-routine"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-15T00:00:00.000Z",
+    "updatedAt": "2024-09-15T00:00:00.000Z",
     "featuredWeight": 9
   },
   {
     "id": "recovery-support-post-surgery-pain",
     "title": "Post-Surgery Pain Management Check-In",
     "shortDescription": "Prepare questions about medication schedules, red flags, and recovery goals.",
-    "categoryId": "recovery-support",
+    "categoryId": "medical-procedures-tests",
+    "subcategory": "post-surgery",
     "tags": [
       "post-op",
       "pain",
@@ -91,14 +122,29 @@
       "pain scale",
       "healing"
     ],
+    "patientFacingTags": [
+      "Post-surgery pain",
+      "Recovery checklist",
+      "Medication timing"
+    ],
+    "situationTags": [
+      "following-up",
+      "daily-routine"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-20T00:00:00.000Z",
+    "updatedAt": "2024-09-20T00:00:00.000Z",
     "featuredWeight": 8
   },
   {
     "id": "chronic-conditions-diabetes-adjustment",
     "title": "Discussing Diabetes Medication Adjustments",
     "shortDescription": "Plan a conversation about tweaking doses after glucose trends change.",
-    "categoryId": "chronic-conditions",
+    "categoryId": "living-with-chronic-conditions",
+    "subcategory": "diabetes",
     "tags": [
       "diabetes",
       "medication",
@@ -109,14 +155,30 @@
       "dose",
       "trend"
     ],
+    "patientFacingTags": [
+      "Blood sugar trends",
+      "Diabetes medication",
+      "Dose adjustment"
+    ],
+    "situationTags": [
+      "following-up",
+      "starting-treatment",
+      "daily-routine"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-12T00:00:00.000Z",
+    "updatedAt": "2024-09-12T00:00:00.000Z",
     "featuredWeight": 8
   },
   {
     "id": "medication-management-side-effect-review",
     "title": "Reviewing Possible Medication Side Effects",
     "shortDescription": "Organize observations about new symptoms that may be related to treatment.",
-    "categoryId": "medication-management",
+    "categoryId": "managing-medications",
+    "subcategory": "safety",
     "tags": [
       "side effects",
       "medication",
@@ -127,14 +189,29 @@
       "symptom",
       "timing"
     ],
+    "patientFacingTags": [
+      "Side effects",
+      "Medication review",
+      "Dosing questions"
+    ],
+    "situationTags": [
+      "following-up",
+      "experiencing-symptoms"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-25T00:00:00.000Z",
+    "updatedAt": "2024-09-25T00:00:00.000Z",
     "featuredWeight": 7
   },
   {
     "id": "chronic-conditions-autoimmune-flare",
     "title": "Autoimmune Flare Self-Monitoring",
     "shortDescription": "Capture flare patterns, triggers, and questions for a rheumatology follow-up.",
-    "categoryId": "chronic-conditions",
+    "categoryId": "living-with-chronic-conditions",
+    "subcategory": "autoimmune",
     "tags": [
       "autoimmune",
       "flare",
@@ -145,14 +222,30 @@
       "joints",
       "flare"
     ],
+    "patientFacingTags": [
+      "Autoimmune flare",
+      "Joint stiffness",
+      "Fatigue tracking"
+    ],
+    "situationTags": [
+      "daily-routine",
+      "experiencing-symptoms",
+      "following-up"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-19T00:00:00.000Z",
+    "updatedAt": "2024-09-19T00:00:00.000Z",
     "featuredWeight": 7
   },
   {
     "id": "symptom-tracking-migraine-journal",
     "title": "Migraine Symptom Tracking Template",
     "shortDescription": "Create a log to capture triggers, severity, and relief strategies.",
-    "categoryId": "symptom-tracking",
+    "categoryId": "living-with-chronic-conditions",
+    "subcategory": "neurology",
     "tags": [
       "migraine",
       "symptom-log",
@@ -163,14 +256,29 @@
       "trigger",
       "aura"
     ],
+    "patientFacingTags": [
+      "Migraine tracker",
+      "Headache diary",
+      "Trigger log"
+    ],
+    "situationTags": [
+      "daily-routine",
+      "experiencing-symptoms"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-18T00:00:00.000Z",
+    "updatedAt": "2024-09-18T00:00:00.000Z",
     "featuredWeight": 7
   },
   {
     "id": "pediatrics-fever-followup",
     "title": "Pediatric Fever Follow-Up Questions",
     "shortDescription": "Support caregivers in summarizing symptoms and next steps for a child’s fever.",
-    "categoryId": "pediatrics",
+    "categoryId": "life-stages-preventive-care",
+    "subcategory": "pediatrics",
     "tags": [
       "pediatrics",
       "fever",
@@ -181,14 +289,29 @@
       "temperature",
       "hydration"
     ],
+    "patientFacingTags": [
+      "Child fever",
+      "Caregiver questions",
+      "Hydration check"
+    ],
+    "situationTags": [
+      "experiencing-symptoms",
+      "following-up"
+    ],
+    "audienceTags": [
+      "for-family-member",
+      "for-child"
+    ],
     "createdAt": "2024-09-08T00:00:00.000Z",
+    "updatedAt": "2024-09-08T00:00:00.000Z",
     "featuredWeight": 7
   },
   {
     "id": "diagnostics-prep-imaging-discussion",
     "title": "Preparing for Imaging Results Discussion",
     "shortDescription": "Plan questions about what an upcoming scan might show and next steps.",
-    "categoryId": "diagnostics-prep",
+    "categoryId": "medical-procedures-tests",
+    "subcategory": "imaging-results",
     "tags": [
       "imaging",
       "radiology",
@@ -199,14 +322,29 @@
       "report",
       "follow up"
     ],
+    "patientFacingTags": [
+      "Imaging results",
+      "MRI discussion",
+      "Radiology questions"
+    ],
+    "situationTags": [
+      "planning-ahead",
+      "following-up"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-23T00:00:00.000Z",
+    "updatedAt": "2024-09-23T00:00:00.000Z",
     "featuredWeight": 6
   },
   {
     "id": "mental-health-therapy-checkin",
     "title": "Preparing for a Therapy Check-In",
     "shortDescription": "Outline feelings, triggers, and coping tools for an upcoming mental health session.",
-    "categoryId": "mental-health",
+    "categoryId": "mental-health-wellness",
+    "subcategory": "therapy",
     "tags": [
       "therapy",
       "mental health",
@@ -217,14 +355,28 @@
       "coping",
       "goals"
     ],
+    "patientFacingTags": [
+      "Therapy check-in",
+      "Mood tracking",
+      "Coping skills"
+    ],
+    "situationTags": [
+      "daily-routine",
+      "following-up"
+    ],
+    "audienceTags": [
+      "for-myself"
+    ],
     "createdAt": "2024-09-22T00:00:00.000Z",
+    "updatedAt": "2024-09-22T00:00:00.000Z",
     "featuredWeight": 6
   },
   {
     "id": "insurance-prior-auth",
     "title": "Navigating Prior Authorization",
     "shortDescription": "Plan questions for insurer, clinician, and pharmacy.",
-    "categoryId": "insurance-billing",
+    "categoryId": "healthcare-logistics",
+    "subcategory": "insurance",
     "tags": [
       "insurance",
       "authorization"
@@ -233,14 +385,29 @@
       "appeal",
       "coverage"
     ],
+    "patientFacingTags": [
+      "Prior authorization",
+      "Insurance call",
+      "Coverage questions"
+    ],
+    "situationTags": [
+      "planning-ahead",
+      "following-up"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-10T00:00:00.000Z",
+    "updatedAt": "2024-09-10T00:00:00.000Z",
     "featuredWeight": 6
   },
   {
     "id": "lifestyle-support-hbp-plan",
     "title": "Lifestyle Questions for High Blood Pressure",
     "shortDescription": "Frame a visit around diet, movement, stress, and home monitoring.",
-    "categoryId": "lifestyle-support",
+    "categoryId": "nutrition-lifestyle",
+    "subcategory": "blood-pressure",
     "tags": [
       "hypertension",
       "lifestyle",
@@ -251,7 +418,21 @@
       "exercise",
       "monitor"
     ],
+    "patientFacingTags": [
+      "High blood pressure",
+      "Diet changes",
+      "Exercise plan"
+    ],
+    "situationTags": [
+      "daily-routine",
+      "planning-ahead"
+    ],
+    "audienceTags": [
+      "for-myself",
+      "for-family-member"
+    ],
     "createdAt": "2024-09-05T00:00:00.000Z",
+    "updatedAt": "2024-09-05T00:00:00.000Z",
     "featuredWeight": 6
   }
 ]

@@ -2,7 +2,8 @@
   "id": "talking-doctor-new-medication",
   "title": "How to Ask About a New Medication",
   "shortDescription": "Prepare privacy-conscious questions before starting a prescribed medicine.",
-  "categoryId": "talking-doctor",
+  "categoryId": "talking-to-your-doctor",
+  "subcategory": "medication-questions",
   "tags": [
     "medication",
     "doctor-visit",
@@ -13,7 +14,21 @@
     "side effects",
     "interactions"
   ],
+  "patientFacingTags": [
+    "New prescription",
+    "Doctor questions",
+    "Medication plan"
+  ],
+  "situationTags": [
+    "before-appointment",
+    "starting-treatment"
+  ],
+  "audienceTags": [
+    "for-myself",
+    "for-family-member"
+  ],
   "createdAt": "2024-09-01T00:00:00.000Z",
+  "updatedAt": "2024-09-01T00:00:00.000Z",
   "featuredWeight": 10,
   "body": "You are an educational health communication coach... (stubbed body)."
 }

@@ -2,7 +2,8 @@
   "id": "insurance-prior-auth",
   "title": "Navigating Prior Authorization",
   "shortDescription": "Plan questions for insurer, clinician, and pharmacy.",
-  "categoryId": "insurance-billing",
+  "categoryId": "healthcare-logistics",
+  "subcategory": "insurance",
   "tags": [
     "insurance",
     "authorization"
@@ -11,7 +12,21 @@
     "appeal",
     "coverage"
   ],
+  "patientFacingTags": [
+    "Prior authorization",
+    "Insurance call",
+    "Coverage questions"
+  ],
+  "situationTags": [
+    "planning-ahead",
+    "following-up"
+  ],
+  "audienceTags": [
+    "for-myself",
+    "for-family-member"
+  ],
   "createdAt": "2024-09-10T00:00:00.000Z",
+  "updatedAt": "2024-09-10T00:00:00.000Z",
   "featuredWeight": 6,
   "body": "You are an educational authorization navigator... (stubbed body)."
 }

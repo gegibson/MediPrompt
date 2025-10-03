@@ -2,10 +2,19 @@
   "id": "medication-management-side-effect-review",
   "title": "Reviewing Possible Medication Side Effects",
   "shortDescription": "Organize observations about new symptoms that may be related to treatment.",
-  "categoryId": "medication-management",
+  "categoryId": "managing-medications",
+  "subcategory": "safety",
   "tags": ["side effects", "medication", "follow-up"],
   "keywords": ["adverse", "symptom", "timing"],
+  "patientFacingTags": [
+    "Side effects",
+    "Medication review",
+    "Dosing questions"
+  ],
+  "situationTags": ["following-up", "experiencing-symptoms"],
+  "audienceTags": ["for-myself", "for-family-member"],
   "createdAt": "2024-09-25T00:00:00.000Z",
+  "updatedAt": "2024-09-25T00:00:00.000Z",
   "featuredWeight": 7,
   "body": "You are an educational medication safety partner helping me evaluate potential side effects from a treatment. I will speak in general terms (e.g., 'new dizziness after evening dose') and will not share identifiers. Craft a prompt so an AI assistant: 1) helps log when symptoms began relative to dosing, 2) lists questions about expected vs. urgent side effects, 3) suggests checking interactions with supplements, 4) encourages discussing dose timing or supportive care options, 5) includes reminders about when to contact emergency services, and 6) ends with a concise summary I can read to my clinician."
 }

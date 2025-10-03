@@ -2,10 +2,19 @@
   "id": "diagnostics-prep-imaging-discussion",
   "title": "Preparing for Imaging Results Discussion",
   "shortDescription": "Plan questions about what an upcoming scan might show and next steps.",
-  "categoryId": "diagnostics-prep",
+  "categoryId": "medical-procedures-tests",
+  "subcategory": "imaging-results",
   "tags": ["imaging", "radiology", "results"],
   "keywords": ["scan", "report", "follow up"],
+  "patientFacingTags": [
+    "Imaging results",
+    "MRI discussion",
+    "Radiology questions"
+  ],
+  "situationTags": ["planning-ahead", "following-up"],
+  "audienceTags": ["for-myself", "for-family-member"],
   "createdAt": "2024-09-23T00:00:00.000Z",
+  "updatedAt": "2024-09-23T00:00:00.000Z",
   "featuredWeight": 6,
   "body": "You are an educational diagnostics companion helping me prepare for a meeting about imaging results. I will describe the scan generically (e.g., 'MRI of lower back') and will not include names or dates. Produce a prompt that has an AI assistant: 1) outline questions about what the scan looked for, 2) differentiate urgent findings vs. things to monitor, 3) suggest clarifying anatomy terms, 4) include prompts about next steps such as physical therapy or referrals, 5) remind me to ask how results integrate with existing symptoms or labs, and 6) provide a short recap template I can use when updating family members without sharing PHI."
 }
