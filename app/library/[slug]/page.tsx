@@ -1,21 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import categories from "@/data/categories.json";
 import { PromptActionPanel } from "@/components/library/PromptActionPanel";
 import {
-  getPromptById,
-  getRelatedPrompts,
-  promptIndex,
-} from "@/lib/library/staticDataset";
+  getServerCategories,
+  getServerPromptBody,
+  getServerPromptIndex,
+} from "@/lib/library/serverData";
+import type { PromptIndexItem } from "@/lib/library/types";
 
 type PromptDetailPageProps = {
   params: {
     slug: string;
   };
 };
-
-const categoryMap = new Map(categories.map((category) => [category.id, category]));
 
 const LLM_DESTINATIONS = [
   {
@@ -35,12 +33,13 @@ const LLM_DESTINATIONS = [
   },
 ];
 
-export function generateStaticParams() {
-  return promptIndex.map((entry) => ({ slug: entry.id }));
+export async function generateStaticParams() {
+  const index = await getServerPromptIndex();
+  return index.map((entry) => ({ slug: entry.id }));
 }
 
-export function generateMetadata({ params }: PromptDetailPageProps) {
-  const prompt = getPromptById(params.slug);
+export async function generateMetadata({ params }: PromptDetailPageProps) {
+  const prompt = await getServerPromptBody(params.slug);
   if (!prompt) {
     return {};
   }
@@ -58,15 +57,20 @@ export function generateMetadata({ params }: PromptDetailPageProps) {
   };
 }
 
-export default function PromptDetailPage({ params }: PromptDetailPageProps) {
-  const prompt = getPromptById(params.slug);
+export default async function PromptDetailPage({ params }: PromptDetailPageProps) {
+  const [prompt, categories, index] = await Promise.all([
+    getServerPromptBody(params.slug),
+    getServerCategories(),
+    getServerPromptIndex(),
+  ]);
 
   if (!prompt) {
     notFound();
   }
 
+  const categoryMap = new Map(categories.map((category) => [category.id, category]));
   const category = categoryMap.get(prompt.categoryId);
-  const related = getRelatedPrompts(prompt.id, prompt.categoryId, 3);
+  const related = getRelatedFromIndex(index, prompt.id, prompt.categoryId, 3);
 
   return (
     <div className="bg-[var(--color-surface-subtle)] pb-16">
@@ -181,4 +185,15 @@ export default function PromptDetailPage({ params }: PromptDetailPageProps) {
       </main>
     </div>
   );
+}
+
+function getRelatedFromIndex(
+  index: PromptIndexItem[],
+  id: string,
+  categoryId: string,
+  limit: number,
+): PromptIndexItem[] {
+  return index
+    .filter((item) => item.id !== id && item.categoryId === categoryId)
+    .slice(0, limit);
 }
