@@ -7,6 +7,8 @@ import {
   getServerPromptBody,
   getServerPromptIndex,
 } from "@/lib/library/serverData";
+import { SITE_URL, buildCanonicalPath } from "@/lib/config/site";
+import { SharePromptButton } from "@/components/library/SharePromptButton";
 import type { PromptIndexItem } from "@/lib/library/types";
 
 type PromptDetailPageProps = {
@@ -46,13 +48,35 @@ export async function generateMetadata({ params }: PromptDetailPageProps) {
 
   const title = `${prompt.title} | MediPrompt`;
   const description = prompt.shortDescription;
+  const canonicalPath = `/library/${prompt.id}`;
+  const canonicalUrl = buildCanonicalPath(canonicalPath);
 
   return {
     title,
     description,
+    alternates: {
+      canonical: canonicalPath,
+    },
     openGraph: {
       title,
       description,
+      url: canonicalUrl,
+      type: "article",
+      siteName: "MediPrompt",
+      images: [
+        {
+          url: `${SITE_URL}/og-healthcare-library.png`,
+          width: 1200,
+          height: 630,
+          alt: `${prompt.title} prompt preview`,
+        },
+      ],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [`${SITE_URL}/og-healthcare-library.png`],
     },
   };
 }
@@ -71,11 +95,44 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
   const categoryMap = new Map(categories.map((category) => [category.id, category]));
   const category = categoryMap.get(prompt.categoryId);
   const related = getRelatedFromIndex(index, prompt.id, prompt.categoryId, 3);
+  const canonicalPath = `/library/${prompt.id}`;
+  const shareUrl = buildCanonicalPath(canonicalPath);
+
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: prompt.title,
+    description: prompt.shortDescription,
+    mainEntityOfPage: {
+      "@type": "WebPage",
+      "@id": shareUrl,
+    },
+    author: {
+      "@type": "Organization",
+      name: "MediPrompt",
+    },
+    publisher: {
+      "@type": "Organization",
+      name: "MediPrompt",
+      logo: {
+        "@type": "ImageObject",
+        url: `${SITE_URL}/og-healthcare-library.png`,
+      },
+    },
+    datePublished: prompt.createdAt ?? new Date().toISOString(),
+    dateModified: prompt.createdAt ?? new Date().toISOString(),
+    articleSection: category?.name,
+  };
 
   return (
     <div className="bg-[var(--color-surface-subtle)] pb-16">
       <header className="bg-[var(--color-primary)] text-white">
         <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-12 sm:gap-8 sm:px-6 lg:px-8">
+          <script
+            type="application/ld+json"
+            dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+            suppressHydrationWarning
+          />
           <nav className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/70">
             <Link href="/library" className="transition hover:text-white">
               Healthcare Library
@@ -110,6 +167,7 @@ export default async function PromptDetailPage({ params }: PromptDetailPageProps
             </p>
             <div className="flex flex-wrap items-center gap-3">
               <PromptActionPanel promptText={prompt.body} destinations={LLM_DESTINATIONS} />
+              <SharePromptButton url={shareUrl} />
               <Link
                 href="/library"
                 className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
