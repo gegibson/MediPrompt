@@ -36,43 +36,15 @@ export const categoryOptions: FacetOption[] = [
   { id: "specialty", label: "Specialty Care" },
 ];
 
-export const contentTypeOptions: FacetOption[] = [
-  { id: "articles", label: "Articles" },
-  { id: "videos", label: "Videos" },
-  { id: "guidelines", label: "Guidelines" },
-  { id: "research", label: "Research Papers" },
-  { id: "handouts", label: "Patient Handouts" },
-  { id: "tools", label: "Interactive Tools" },
-];
-
-export const audienceOptions: FacetOption[] = [
-  { id: "patients", label: "Patients" },
-  { id: "caregivers", label: "Caregivers" },
-  { id: "clinicians", label: "Healthcare Professionals" },
-  { id: "students", label: "Students" },
-];
-
-export const languageOptions: FacetOption[] = [
-  { id: "en", label: "English" },
-  { id: "es", label: "Spanish" },
-  { id: "other", label: "Other Languages" },
-];
-
 export type FilterState = {
   sort: string;
   categories: Set<string>;
-  types: Set<string>;
-  audience: Set<string>;
-  languages: Set<string>;
 };
 
 export function createDefaultState(): FilterState {
   return {
     sort: sortOptions[0].id,
     categories: new Set<string>(),
-    types: new Set<string>(),
-    audience: new Set<string>(),
-    languages: new Set<string>(),
   };
 }
 
@@ -80,13 +52,10 @@ export function cloneFilterState(source: FilterState): FilterState {
   return {
     sort: source.sort,
     categories: new Set(source.categories),
-    types: new Set(source.types),
-    audience: new Set(source.audience),
-    languages: new Set(source.languages),
   };
 }
 
-export type FilterGroupKey = keyof Omit<FilterState, "sort">;
+export type FilterGroupKey = "categories";
 
 type ActiveBadge = {
   id: string;
@@ -117,27 +86,6 @@ export function FilterPanel({ state, onSortChange, onToggle, onReset, categories
       const label = categoryLookup.get(id);
       if (label) {
         badges.push({ id, label, group: "categories" });
-      }
-    });
-
-    state.types.forEach((id) => {
-      const match = contentTypeOptions.find((option) => option.id === id);
-      if (match) {
-        badges.push({ id, label: match.label, group: "types" });
-      }
-    });
-
-    state.audience.forEach((id) => {
-      const match = audienceOptions.find((option) => option.id === id);
-      if (match) {
-        badges.push({ id, label: match.label, group: "audience" });
-      }
-    });
-
-    state.languages.forEach((id) => {
-      const match = languageOptions.find((option) => option.id === id);
-      if (match) {
-        badges.push({ id, label: match.label, group: "languages" });
       }
     });
 
@@ -228,44 +176,6 @@ export function FilterPanel({ state, onSortChange, onToggle, onReset, categories
             </div>
           </FilterSection>
 
-          <FilterSection title="Content Type">
-            <div className="space-y-2">
-              {contentTypeOptions.map((option) => (
-                <FacetCheckbox
-                  key={option.id}
-                  checked={state.types.has(option.id)}
-                  label={option.label}
-                  onToggle={() => onToggle("types", option.id)}
-                />
-              ))}
-            </div>
-          </FilterSection>
-
-          <FilterSection title="Audience">
-            <div className="space-y-2">
-              {audienceOptions.map((option) => (
-                <FacetCheckbox
-                  key={option.id}
-                  checked={state.audience.has(option.id)}
-                  label={option.label}
-                  onToggle={() => onToggle("audience", option.id)}
-                />
-              ))}
-            </div>
-          </FilterSection>
-
-          <FilterSection title="Language">
-            <div className="space-y-2">
-              {languageOptions.map((option) => (
-                <FacetCheckbox
-                  key={option.id}
-                  checked={state.languages.has(option.id)}
-                  label={option.label}
-                  onToggle={() => onToggle("languages", option.id)}
-                />
-              ))}
-            </div>
-          </FilterSection>
         </div>
       </div>
     </aside>

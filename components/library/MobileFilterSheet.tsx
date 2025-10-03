@@ -3,10 +3,7 @@
 import { useEffect } from "react";
 
 import {
-  audienceOptions,
   categoryOptions as fallbackCategoryOptions,
-  contentTypeOptions,
-  languageOptions,
   sortOptions,
   type FilterGroupKey,
   type FilterState,
@@ -122,26 +119,6 @@ export function MobileFilterSheet({
             onToggle={(value) => onToggle("categories", value)}
           />
 
-          <MobileFacetGroup
-            title="Content Type"
-            options={contentTypeOptions}
-            selected={state.types}
-            onToggle={(value) => onToggle("types", value)}
-          />
-
-          <MobileFacetGroup
-            title="Audience"
-            options={audienceOptions}
-            selected={state.audience}
-            onToggle={(value) => onToggle("audience", value)}
-          />
-
-          <MobileFacetGroup
-            title="Language"
-            options={languageOptions}
-            selected={state.languages}
-            onToggle={(value) => onToggle("languages", value)}
-          />
         </div>
 
         <footer className="space-y-3 border-t border-slate-200 px-5 py-4">
