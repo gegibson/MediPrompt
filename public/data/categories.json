@@ -6,6 +6,12 @@
     "description": "Guides for respectful, productive conversations during clinical visits."
   },
   {
+    "id": "primary-care",
+    "name": "Primary Care",
+    "icon": "🏥",
+    "description": "Intake and follow-up prompts for family medicine and general practice visits."
+  },
+  {
     "id": "insurance-billing",
     "name": "Insurance & Billing",
     "icon": "📄",

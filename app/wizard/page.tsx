@@ -1785,24 +1785,6 @@ function WizardPageInner() {
         </div>
       )}
 
-      <footer className="border-t border-slate-200 bg-white/70">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-8 text-xs text-slate-500 md:flex-row md:items-center md:justify-between md:px-10">
-          <p className="max-w-xl">
-            Educational support only — contact licensed clinicians for medical decisions.
-          </p>
-          <div className="flex flex-wrap gap-4 font-medium text-slate-600">
-            <Link href="/privacy" className="hover:text-emerald-600">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-emerald-600">
-              Terms
-            </Link>
-            <Link href="/disclaimer" className="hover:text-emerald-600">
-              Disclaimer
-            </Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

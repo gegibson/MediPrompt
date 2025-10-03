@@ -312,29 +312,6 @@ export default function LandingPage() {
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white/70">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-3.5 px-5 py-7 text-[11px] text-slate-500 sm:gap-4 sm:px-6 sm:py-8 sm:text-xs md:flex-row md:items-center md:justify-between md:px-10">
-          <div className="max-w-xl space-y-1.5 sm:space-y-2">
-            <p>
-              Mediprompt is educational only — not medical advice, diagnoses, or treatment. We are not a HIPAA covered entity and never store prompt content or personal identifiers.
-            </p>
-            <p>
-              Avoid sharing names, dates, ID numbers, or other PHI when using prompts. Always consult a licensed clinician for care decisions.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3 font-medium text-slate-600 sm:gap-4">
-            <Link href="/privacy" className="hover:text-emerald-600">
-              Privacy
-            </Link>
-            <Link href="/terms" className="hover:text-emerald-600">
-              Terms
-            </Link>
-            <Link href="/disclaimer" className="hover:text-emerald-600">
-              Disclaimer
-            </Link>
-          </div>
-        </div>
-      </footer>
     </div>
   );
 }

@@ -1,0 +1,11 @@
+{
+  "id": "primary-care-intake-checklist",
+  "title": "Primary Care Intake Checklist",
+  "shortDescription": "Organize pre-visit screenings, vitals, and consent reminders before a family medicine appointment.",
+  "categoryId": "primary-care",
+  "tags": ["intake", "checklist", "primary-care"],
+  "keywords": ["primary care", "new patient", "intake"],
+  "createdAt": "2024-10-03T00:00:00.000Z",
+  "featuredWeight": 12,
+  "body": "You are an educational care coordinator supporting a primary care clinic. I will only describe patients in general terms such as 'adult establishing care' and will not provide any names, dates of birth, insurance IDs, or other personal identifiers. Create a prompt I can give an AI assistant that:\n1. Gathers a concise summary of the visit reason, chronic conditions, medications, and allergies using generic descriptions.\n2. Guides collection of vitals and screening results (blood pressure, BMI, PHQ-9, immunizations) with clear units and ranges.\n3. Prompts for social history updates, preventive care gaps, and consent forms that may need attention.\n4. Flags red-flag symptoms that should be escalated to the clinician immediately.\n5. Suggests empathetic closing language and follow-up reminders for the patient.\n\nThe AI assistant should remind the user to avoid PHI, encourage verification with the care team, and provide the final checklist in a tidy, copy-ready format."
+}

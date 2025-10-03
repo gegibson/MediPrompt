@@ -3,7 +3,10 @@ import Script from "next/script";
 import "./globals.css";
 
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { AnnouncementBar } from "@/components/site/AnnouncementBar";
+import { SiteHeader } from "@/components/site/SiteHeader";
 import { getPlausibleConfig } from "@/lib/analytics/plausible";
+import { SiteFooter } from "@/components/site/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Mediprompt — Healthcare Prompt Library & AI Wizard",
@@ -35,7 +38,18 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={bodyClassName}>
-        <AuthProvider>{children}</AuthProvider>
+        <AuthProvider>
+          <AnnouncementBar
+            message="Join the MediPrompt beta — new healthcare library coming soon."
+            href="/wizard"
+            ctaLabel="Launch the Wizard"
+          />
+          <SiteHeader />
+          <main className="min-h-screen bg-[var(--color-background)]">
+            {children}
+          </main>
+          <SiteFooter />
+        </AuthProvider>
         {plausible.enabled ? (
           <Script
             src={plausible.scriptSrc}
