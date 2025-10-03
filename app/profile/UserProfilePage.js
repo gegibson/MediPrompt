@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 export default function UserProfilePage({ user, profile, subscription }) {
   const metadata = user?.user_metadata ?? {};
   const displayName = [
@@ -12,13 +12,9 @@ export default function UserProfilePage({ user, profile, subscription }) {
   const sanitizedName = displayName?.trim() || (user?.email ?? "").split("@")[0] || "Not provided";
   const email = user?.email ?? "Not provided";
   const [subscriptionState, setSubscriptionState] = useState(subscription ?? null);
-  const [subscriptionLoading, setSubscriptionLoading] = useState(false);
-  const [subscriptionFetchError, setSubscriptionFetchError] = useState("");
-  const [subscriptionHydrated, setSubscriptionHydrated] = useState(Boolean(subscription));
 
   useEffect(() => {
     setSubscriptionState(subscription ?? null);
-    setSubscriptionHydrated(Boolean(subscription));
   }, [subscription]);
 
   const hasSubscription = Boolean(subscriptionState);
@@ -43,21 +39,11 @@ export default function UserProfilePage({ user, profile, subscription }) {
   })();
 
   const planLabel = isSubscriber ? "Unlimited plan" : "Free preview";
-  const subscriptionStatus = useMemo(() => {
-    if (!isSubscriber) {
-      return "Not active";
-    }
-    if (!subscriptionHydrated || (subscriptionLoading && !subscriptionState)) {
-      return "Loading details…";
-    }
-    if (cancelAtPeriodEnd) {
-      return "Scheduled to cancel";
-    }
-    if (subscriptionState?.status) {
-      return subscriptionState.status.charAt(0).toUpperCase() + subscriptionState.status.slice(1);
-    }
-    return "Active";
-  }, [isSubscriber, subscriptionHydrated, subscriptionLoading, subscriptionState, cancelAtPeriodEnd]);
+  const subscriptionStatus = !isSubscriber
+    ? "Not active"
+    : cancelAtPeriodEnd
+      ? "Scheduled to cancel"
+      : "Active";
   const subscriptionStartedOn = (() => {
     const raw = profile?.subscribed_at;
     if (!raw) {
@@ -84,64 +70,14 @@ export default function UserProfilePage({ user, profile, subscription }) {
   const [resumeError, setResumeError] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
-  useEffect(() => {
-    if (!isSubscriber || subscriptionHydrated || subscriptionLoading) {
-      return;
-    }
-
-    let isMounted = true;
-    setSubscriptionLoading(true);
-    setSubscriptionFetchError("");
-
-    fetch("/api/profile/subscription", {
-      cache: "no-store",
-      credentials: "include",
-    })
-      .then(async (response) => {
-        if (!response.ok) {
-          throw new Error("Unable to fetch subscription snapshot.");
-        }
-        return response.json();
-      })
-      .then((data) => {
-        if (!isMounted) {
-          return;
-        }
-        if (data?.subscription) {
-          setSubscriptionState(data.subscription);
-        }
-      })
-      .catch((error) => {
-        if (!isMounted) {
-          return;
-        }
-        console.error("Subscription snapshot fetch failed", error);
-        setSubscriptionFetchError(
-          error instanceof Error ? error.message : "Unable to load subscription details.",
-        );
-      })
-      .finally(() => {
-        if (isMounted) {
-          setSubscriptionLoading(false);
-          setSubscriptionHydrated(true);
-        }
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [isSubscriber, subscriptionHydrated, subscriptionLoading]);
-
   const statusHelperText = isSubscriber
-    ? (!subscriptionHydrated || (subscriptionLoading && !subscriptionState))
-      ? "Fetching subscription details…"
-      : cancelAtPeriodEnd
-        ? currentPeriodEndLabel
-          ? `Cancels after your current period on ${currentPeriodEndLabel}.`
-          : "Cancellation is scheduled at the end of the current period."
-        : subscriptionStartedOn
-          ? `Active since ${subscriptionStartedOn}`
-          : "Subscription is active."
+    ? cancelAtPeriodEnd
+      ? currentPeriodEndLabel
+        ? `Cancels after your current period on ${currentPeriodEndLabel}.`
+        : "Cancellation is scheduled at the end of the current period."
+      : subscriptionStartedOn
+        ? `Active since ${subscriptionStartedOn}`
+        : "Subscription is active."
     : "Upgrade whenever you’re ready to unlock unlimited prompts.";
 
   const handleUpgrade = useCallback(async () => {
@@ -278,51 +214,51 @@ export default function UserProfilePage({ user, profile, subscription }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[color:var(--color-primary-light)] via-[color:var(--background)] to-[color:var(--color-secondary-light)] text-ink-primary">
+    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50 text-slate-900">
       <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16 md:px-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-ink-primary">My Profile</h1>
+        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">My Profile</h1>
 
-        <section className="rounded-3xl border border-[color:var(--color-border)] bg-white/95 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-ink-primary">Account Information</h2>
-          <p className="mt-1 text-sm text-ink-muted">
+        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
+          <h2 className="text-lg font-semibold text-slate-900">Account Information</h2>
+          <p className="mt-1 text-sm text-slate-600">
             Review the basic details associated with your Mediprompt account.
           </p>
 
           <dl className="mt-6 grid gap-6 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Name
               </dt>
-              <dd className="mt-1 text-base font-medium text-ink-primary">
+              <dd className="mt-1 text-base font-medium text-slate-900">
                 {sanitizedName}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Email
               </dt>
-              <dd className="mt-1 text-base font-medium text-ink-primary">
+              <dd className="mt-1 text-base font-medium text-slate-900">
                 {email}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Plan
               </dt>
-              <dd className="mt-1 text-base font-medium text-ink-primary">
+              <dd className="mt-1 text-base font-medium text-slate-900">
                 {planLabel}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-ink-muted">
+              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
                 Subscription status
               </dt>
-              <dd className="mt-1 text-base font-medium text-ink-primary">
+              <dd className="mt-1 text-base font-medium text-slate-900">
                 {subscriptionStatus}
-                <span className="mt-1 block text-sm font-normal text-ink-muted">
+                <span className="mt-1 block text-sm font-normal text-slate-500">
                   {statusHelperText}
                 </span>
               </dd>
@@ -336,12 +272,8 @@ export default function UserProfilePage({ user, profile, subscription }) {
                   <button
                     type="button"
                     onClick={handleResumeSubscription}
-                    disabled={
-                      resumeStatus === "loading" ||
-                      !subscriptionHydrated ||
-                      (subscriptionLoading && !subscriptionState)
-                    }
-                    className="rounded-full border border-[color:var(--color-primary)] px-5 py-2 text-sm font-semibold text-[color:var(--color-primary)] shadow-sm transition hover:bg-[color:var(--color-primary-light)] disabled:cursor-not-allowed disabled:border-[color:var(--color-border)] disabled:text-[color:var(--color-border-strong)]"
+                    disabled={resumeStatus === "loading"}
+                    className="rounded-full border border-emerald-500 px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-emerald-200 disabled:text-emerald-300"
                   >
                     {resumeStatus === "loading" ? "Resuming..." : "Resume subscription"}
                   </button>
@@ -349,11 +281,7 @@ export default function UserProfilePage({ user, profile, subscription }) {
                   <button
                     type="button"
                     onClick={handleCancelSubscription}
-                    disabled={
-                      cancelStatus === "loading" ||
-                      !subscriptionHydrated ||
-                      (subscriptionLoading && !subscriptionState)
-                    }
+                    disabled={cancelStatus === "loading"}
                     className="rounded-full border border-rose-400 px-5 py-2 text-sm font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-rose-200 disabled:text-rose-300"
                   >
                     {cancelStatus === "loading" ? "Scheduling cancellation..." : "Cancel subscription"}
@@ -365,14 +293,14 @@ export default function UserProfilePage({ user, profile, subscription }) {
                 type="button"
                 onClick={handleUpgrade}
                 disabled={upgradeStatus === "loading"}
-                className="rounded-full bg-[color:var(--color-primary)] px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-[rgba(47,82,184,0.3)] transition hover:bg-[color:var(--color-primary-dark)] disabled:cursor-not-allowed disabled:bg-[color:var(--color-primary-light)]"
+                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
               >
                 {upgradeStatus === "loading" ? "Preparing checkout..." : "Upgrade to Unlimited"}
               </button>
             )}
           </div>
 
-          <p className="mt-3 text-sm text-ink-muted">
+          <p className="mt-3 text-sm text-slate-600">
             {isSubscriber
               ? cancelAtPeriodEnd
                 ? "Your plan stays active until the end of the current billing period. Resume any time before it ends."
@@ -380,12 +308,8 @@ export default function UserProfilePage({ user, profile, subscription }) {
               : "Upgrade for unlimited prompt generation and premium support."}
           </p>
 
-          {subscriptionFetchError ? (
-            <p className="mt-3 text-sm text-rose-600">{subscriptionFetchError}</p>
-          ) : null}
-
           {successMessage ? (
-            <p className="mt-3 text-sm text-[color:var(--color-secondary-dark)]">{successMessage}</p>
+            <p className="mt-3 text-sm text-emerald-700">{successMessage}</p>
           ) : null}
 
           {upgradeError && !isSubscriber ? (

@@ -1,11 +1,20 @@
 "use client";
 
 import Link from "next/link";
+import {
+  type MouseEvent as ReactMouseEvent,
+  useRef,
+} from "react";
 
-import { SiteHeader } from "@/components/site/SiteHeader";
+import { useAuthContext } from "@/components/auth/AuthProvider";
+import { LibraryShell } from "@/components/library/LibraryShell";
 import { trackEvent } from "@/lib/analytics/track";
+import { isLibraryEnabled } from "@/lib/library/flags";
 
 export default function LandingPage() {
+  const { user, supabase, openAuthModal, loading } = useAuthContext();
+  const promptLibraryRef = useRef<HTMLElement | null>(null);
+
   const handleCtaClick = (payload: {
     location: string;
     type: "primary" | "secondary" | "nav";
@@ -14,22 +23,116 @@ export default function LandingPage() {
     trackEvent("cta_clicked", payload);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[color:var(--color-primary-light)] via-[color:var(--background)] to-[color:var(--color-secondary-light)] text-slate-900">
-      <SiteHeader />
+  const handleAuthModalOpen = () => {
+    trackEvent("auth_modal_open", { source: "landing-nav" });
+    openAuthModal();
+  };
 
-      <section className="mx-auto w-full max-w-5xl px-4 pt-8 sm:px-6 md:px-10">
+  const handleSignOut = async () => {
+    if (!supabase) {
+      return;
+    }
+
+    try {
+      await supabase.auth.signOut();
+      trackEvent("auth_signed_out", { source: "landing" });
+    } catch (error) {
+      console.error("Sign out failed", error);
+    }
+  };
+
+  const handleScrollToLibrary = (event?: ReactMouseEvent) => {
+    event?.preventDefault();
+
+    handleCtaClick({
+      location: "hero",
+      type: "secondary",
+      target: "prompt-library",
+    });
+
+    if (promptLibraryRef.current) {
+      promptLibraryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    if (typeof window !== "undefined") {
+      window.history.replaceState(null, "", "#prompt-library");
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-emerald-50 text-slate-900">
+      <header className="mx-auto flex w-full max-w-5xl flex-col gap-5 px-4 pb-7 pt-6 sm:px-6 sm:pb-8 sm:pt-7 md:gap-6 md:px-10 md:pb-10 md:pt-10">
+        <nav className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex items-center gap-2.5 sm:gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-emerald-100 text-lg font-semibold text-emerald-800 shadow-sm sm:h-11 sm:w-11">
+              MP
+            </span>
+            <div>
+              <p className="text-base font-semibold text-slate-800">Mediprompt</p>
+              <p className="text-[13px] text-slate-600 sm:text-sm">
+                Safer AI prompts for patients & caregivers
+              </p>
+            </div>
+          </div>
+          <div className="flex flex-wrap items-center gap-2.5 text-sm font-medium sm:gap-3">
+            {user ? (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-full border border-slate-300 px-4 py-1.75 text-slate-600 transition hover:border-emerald-400 hover:text-emerald-600 sm:px-5 sm:py-2"
+              >
+                Sign out
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={handleAuthModalOpen}
+                className="rounded-full border border-emerald-400 px-4 py-1.75 text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400 sm:px-5 sm:py-2"
+                disabled={loading}
+              >
+                Sign in
+              </button>
+            )}
+            <Link
+              href="/wizard"
+              className="rounded-full border border-emerald-400 px-4 py-1.75 text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/60 sm:px-5 sm:py-2"
+              onClick={() =>
+                handleCtaClick({
+                  location: "nav",
+                  type: "nav",
+                  target: "wizard",
+                })
+              }
+            >
+              Skip to Wizard
+            </Link>
+            <Link
+              href="/wizard"
+              className="rounded-full bg-emerald-600 px-4 py-1.75 text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:px-5 sm:py-2"
+              onClick={() =>
+                handleCtaClick({
+                  location: "nav",
+                  type: "nav",
+                  target: "wizard",
+                })
+              }
+            >
+              Use Wizard
+            </Link>
+          </div>
+        </nav>
+
         <div className="grid gap-3 md:max-w-2xl md:gap-4">
           <h1 className="text-[2.05rem] font-semibold leading-[1.15] tracking-tight text-slate-900 sm:text-[2.15rem] md:text-[2.4rem] lg:text-[2.6rem]">
             Get the Healthcare Answers You Need from AI
           </h1>
-          <p className="text-[13.5px] leading-snug text-slate-600 sm:text-sm md:text-base">
+          <p className="text-[13.5px] leading-snug text-slate-700 sm:text-sm md:text-base">
             Clinician-designed questions to improve AI responses, such as ChatGPT.
           </p>
           <div className="flex flex-wrap items-center gap-2">
             <Link
               href="/wizard"
-              className="inline-flex items-center justify-center rounded-full btn-primary px-4 py-2 text-sm font-semibold sm:px-5 sm:py-2.5"
+              className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:px-5 sm:py-2.5"
               onClick={() =>
                 handleCtaClick({
                   location: "hero",
@@ -41,76 +144,109 @@ export default function LandingPage() {
               Build My Custom Prompt
             </Link>
             <Link
-              href="/templates"
-              className="inline-flex items-center justify-center rounded-full border border-primary-light px-4 py-2 text-sm font-semibold text-primary transition hover:border-primary hover:bg-primary-light/60 focus:outline-none focus:ring-2 focus:ring-primary-light sm:px-5 sm:py-2.5"
-              onClick={() =>
-                handleCtaClick({
-                  location: "hero",
-                  type: "secondary",
-                  target: "templates",
-                })
-              }
+              href="#prompt-library"
+              className="inline-flex items-center justify-center rounded-full border border-emerald-400 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/70 focus:outline-none focus:ring-2 focus:ring-emerald-200 sm:px-5 sm:py-2.5"
+              onClick={handleScrollToLibrary}
             >
-              Browse Question Templates
+              Browse Free Library
             </Link>
           </div>
         </div>
-      </section>
+      </header>
 
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 pb-12 pt-10 sm:px-6 sm:pb-14 sm:pt-12 md:gap-10 md:px-10 md:pb-16 md:pt-14 lg:gap-14">
-        <section className="rounded-3xl border border-primary-light bg-gradient-to-br from-[color:var(--color-primary-light)] via-white to-[color:var(--color-secondary-light)] p-6 text-slate-800 shadow-lg sm:p-7 md:p-8">
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 pb-12 sm:px-6 sm:pb-14 md:gap-10 md:px-10 md:pb-16 lg:gap-14">
+        {isLibraryEnabled() ? (
+        <section
+          ref={promptLibraryRef}
+          id="prompt-library"
+          className="rounded-3xl border border-sky-100 bg-white/85 p-4 text-slate-800 shadow-lg shadow-sky-100/40 backdrop-blur scroll-mt-20 sm:scroll-mt-24 sm:p-6 md:p-7"
+        >
+          <LibraryShell />
+        </section>
+        ) : (
+        <section
+          id="prompt-library"
+          className="rounded-3xl border border-slate-200 bg-white/85 p-6 text-slate-800 shadow-sm scroll-mt-20 sm:p-7 md:p-8"
+        >
+          <div className="text-center">
+            <h2 className="text-[1.55rem] font-semibold leading-tight text-slate-900 sm:text-[1.6rem] md:text-[1.75rem]">
+              Healthcare Library
+            </h2>
+            <p className="mt-2 text-[13px] text-slate-600 sm:text-sm">
+              Library coming soon. Use the Wizard to build a custom prompt in the meantime.
+            </p>
+            <div className="mt-4">
+              <Link
+                href="/wizard"
+                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:px-5 sm:py-2.5"
+                onClick={() =>
+                  handleCtaClick({
+                    location: "placeholder",
+                    type: "primary",
+                    target: "wizard",
+                  })
+                }
+              >
+                Open Wizard
+              </Link>
+            </div>
+          </div>
+        </section>
+        )}
+
+        <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6 text-slate-800 shadow-lg shadow-emerald-100/40 sm:p-7 md:p-8">
           <div className="grid gap-5 sm:gap-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.9fr)] md:items-center md:gap-8 lg:gap-10">
             <div className="grid gap-3.5 sm:gap-4">
               <h2 className="text-2xl font-semibold text-slate-900 md:text-3xl">
                 Ready for prompts tailored to your exact situation?
               </h2>
               <p className="text-sm text-slate-700 sm:text-[15px] md:text-base">
-                Templates keep things general. The Guided Builder layers on your symptoms, medications, tone, and next steps without ever storing protected health information.
+                These free templates stay intentionally broad so anyone can use them without sharing personal details. The Wizard upgrades your experience with context-aware questions, PHI-friendly safety checks, and unlimited prompt generation backed by the same privacy-first principles.
               </p>
               <ul className="grid gap-3 text-[13px] text-slate-700 sm:text-sm">
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-sm font-semibold text-primary">
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
                     1
                   </span>
                   <p>
-                    Guided check-ins capture your goal, audience, and safety needs so each AI conversation starts with the right context.
+                    Guided intake captures role, goals, tone, and safe background details so every prompt feels personal without storing identifiers.
                   </p>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-primary-light text-sm font-semibold text-primary">
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
                     2
                   </span>
                   <p>
-                    PHI guardrails warn if you start typing names, dates, or identifiers before you ever copy a prompt.
+                    Built-in PHI scanner highlights risky phrasing before you copy, helping you keep conversations compliant across tools.
                   </p>
                 </li>
                 <li className="flex items-start gap-3">
-                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-accent-light text-sm font-semibold text-accent">
+                  <span className="mt-1 inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-emerald-100 text-sm font-semibold text-emerald-700">
                     3
                   </span>
                   <p>
-                    Smart follow-ups give you gentle reminders for clinician conversations, symptom logs, and emergency escalation language.
+                    Unlimited prompt generation with reminders for next steps, follow-up questions, and educational context tailored to you.
                   </p>
                 </li>
               </ul>
             </div>
 
-            <div className="flex h-full flex-col justify-between rounded-3xl border border-primary-light bg-white/95 p-5 text-sm shadow-md sm:p-6">
+            <div className="flex h-full flex-col justify-between rounded-3xl border border-emerald-200 bg-white/80 p-5 text-sm shadow-sm sm:p-6">
               <div className="grid gap-1.5 text-slate-700 sm:gap-2">
-                <span className="text-[11px] font-semibold uppercase tracking-wide text-primary sm:text-xs">
+                <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 sm:text-xs">
                   Upgrade in minutes
                 </span>
                 <h3 className="text-xl font-semibold text-slate-900">
-                  Guided Builder • $9/month
+                  Wizard access • $9/month
                 </h3>
                 <p>
-                  Stripe-powered checkout. Cancel anytime. We never store your questions or payment details.
+                  Stripe-powered checkout. Cancel anytime. We never store payment info or prompt content.
                 </p>
               </div>
               <div className="mt-5 grid gap-2.5 sm:mt-6 sm:gap-3">
                 <Link
                   href="/wizard"
-                  className="inline-flex items-center justify-center rounded-full btn-primary px-4 py-2 text-sm font-semibold sm:px-5 sm:py-2.5"
+                  className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:px-5 sm:py-2.5"
                   onClick={() =>
                     handleCtaClick({
                       location: "transition",
@@ -119,83 +255,81 @@ export default function LandingPage() {
                     })
                   }
                 >
-                  Unlock the Builder
+                  Unlock the Wizard
                 </Link>
                 <p className="text-[11px] text-slate-500 sm:text-xs">
-                  Informational use only. Keep PHI offline and check answers with your clinician.
+                  Educational use only. Avoid sharing names, numbers, or other personal identifiers in any prompt.
                 </p>
               </div>
             </div>
           </div>
         </section>
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 text-slate-800 shadow-lg shadow-slate-900/10 sm:p-7 md:p-8">
+
+        <section className="rounded-3xl border border-slate-100 bg-white/85 p-6 text-slate-800 shadow-lg shadow-slate-100/40 sm:p-7 md:p-8">
           <div className="mb-5 flex flex-col gap-2.5 text-center sm:mb-6 sm:gap-3">
-            <span className="text-[11px] font-semibold uppercase tracking-wide text-primary sm:text-xs">
+            <span className="text-[11px] font-semibold uppercase tracking-wide text-emerald-600 sm:text-xs">
               Why patients trust Mediprompt
             </span>
             <h2 className="text-xl font-semibold text-slate-900 sm:text-2xl md:text-3xl">
               Built for privacy, empathy, and clarity
             </h2>
             <p className="mx-auto max-w-2xl text-[13px] text-slate-600 sm:text-sm">
-              Every template balances plain-language education with clinical caution so you stay informed without oversharing.
+              Every template balances clinical caution with plain-language education so you stay in control of your health conversations.
             </p>
           </div>
 
           <div className="grid gap-5 sm:gap-6 md:grid-cols-3 md:gap-7">
-            <article className="flex flex-col gap-2.5 rounded-2xl border border-primary-light bg-primary-light/70 p-5 text-left shadow-sm sm:gap-3 sm:p-6">
+            <article className="flex flex-col gap-2.5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-5 text-left shadow-sm sm:gap-3 sm:p-6">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl">🔒</span>
-                <h3 className="text-lg font-semibold text-primary">Privacy first</h3>
+                <h3 className="text-lg font-semibold text-emerald-900">Privacy First</h3>
               </div>
-              <p className="text-[13px] text-slate-700 sm:text-sm">
-                No chat history, no prompt storage, and PHI reminders beside every CTA so you know exactly what to keep private.
+              <p className="text-[13px] text-emerald-800 sm:text-sm">
+                Static prompts mean no chats are stored, tracked, or shared. PHI reminders sit beside every CTA so it&apos;s easy to keep personal data offline.
               </p>
             </article>
 
-            <article className="flex flex-col gap-2.5 rounded-2xl border border-slate-200 bg-slate-50/90 p-5 text-left shadow-sm sm:gap-3 sm:p-6">
+            <article className="flex flex-col gap-2.5 rounded-2xl border border-sky-100 bg-sky-50/80 p-5 text-left shadow-sm sm:gap-3 sm:p-6">
               <div className="flex items-center gap-3">
                 <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-white text-xl">🎓</span>
-                <h3 className="text-lg font-semibold text-slate-900">Clinician reviewed</h3>
+                <h3 className="text-lg font-semibold text-sky-900">Expertise Driven</h3>
               </div>
-              <p className="text-[13px] text-slate-700 sm:text-sm">
-                Prompt patterns reflect guidance from nurses, physicians, and patient advocates to keep questions respectful and actionable.
+              <p className="text-[13px] text-sky-800 sm:text-sm">
+                Prompts reference evidence-informed communication best practices and include actionable questions you can confirm with your care team.
               </p>
             </article>
 
             <article className="flex flex-col gap-2.5 rounded-2xl border border-slate-200 bg-white p-5 text-left shadow-sm sm:gap-3 sm:p-6">
               <div className="flex items-center gap-3">
-                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-slate-100 text-xl text-slate-700">✨</span>
-                <h3 className="text-lg font-semibold text-slate-900">Easy to act on</h3>
+                <span className="inline-flex h-10 w-10 items-center justify-center rounded-full bg-emerald-100 text-xl text-emerald-700">✨</span>
+                <h3 className="text-lg font-semibold text-slate-900">Simple to Use</h3>
               </div>
               <p className="text-[13px] text-slate-700 sm:text-sm">
-                Copy-ready sections, shareable checklists, and upgrade cues make it simple to move from research to clinician follow-up.
+                Copy-ready structure, future-friendly filters, and upgrade cues make it easy to browse now and unlock tailored prompts whenever you need them.
               </p>
             </article>
           </div>
         </section>
       </main>
 
-      <footer className="border-t border-slate-200 bg-white/85 backdrop-blur">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-5 py-7 text-[11px] text-slate-500 sm:px-6 sm:py-8 sm:text-xs md:flex-row md:items-center md:justify-between md:px-10">
-          <div className="max-w-xl space-y-2">
-            <p className="font-semibold uppercase tracking-wide text-primary">
-              Informational only • Not medical advice
+      <footer className="border-t border-slate-200 bg-white/70">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-3.5 px-5 py-7 text-[11px] text-slate-500 sm:gap-4 sm:px-6 sm:py-8 sm:text-xs md:flex-row md:items-center md:justify-between md:px-10">
+          <div className="max-w-xl space-y-1.5 sm:space-y-2">
+            <p>
+              Mediprompt is educational only — not medical advice, diagnoses, or treatment. We are not a HIPAA covered entity and never store prompt content or personal identifiers.
             </p>
             <p>
-              Mediprompt is HIPAA-conscious and does not collect or store prompt content. Keep names, dates, ID numbers, and other PHI out of every question you copy.
-            </p>
-            <p>
-              If you have an emergency, call your local emergency number or visit the nearest hospital immediately.
+              Avoid sharing names, dates, ID numbers, or other PHI when using prompts. Always consult a licensed clinician for care decisions.
             </p>
           </div>
           <div className="flex flex-wrap gap-3 font-medium text-slate-600 sm:gap-4">
-            <Link href="/privacy" className="transition hover:text-primary-dark">
+            <Link href="/privacy" className="hover:text-emerald-600">
               Privacy
             </Link>
-            <Link href="/terms" className="transition hover:text-primary-dark">
+            <Link href="/terms" className="hover:text-emerald-600">
               Terms
             </Link>
-            <Link href="/disclaimer" className="transition hover:text-primary-dark">
+            <Link href="/disclaimer" className="hover:text-emerald-600">
               Disclaimer
             </Link>
           </div>

@@ -13,7 +13,6 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
-import { SiteHeader } from "@/components/site/SiteHeader";
 import { trackEvent } from "@/lib/analytics/track";
 import { detectPhi, buildWarningMessage } from "@/lib/safety/phiGuard";
 import {
@@ -77,7 +76,7 @@ const goalSummaries: Record<WizardGoal, string> = {
 };
 
 function WizardPageInner() {
-  const { user, loading: authLoading, openAuthModal } = useAuthContext();
+  const { supabase, user, loading: authLoading, openAuthModal } = useAuthContext();
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -474,16 +473,6 @@ function WizardPageInner() {
     setIsFetchingGuidance(false);
     triggeredFlagIdsRef.current.clear();
   }, []);
-
-  useEffect(() => {
-    if (!user) {
-      setSelectedTemplateId(null);
-      setRole("patient");
-      setGoal("learn-basics");
-      resetFlowState();
-      persistPreviewUsage(false);
-    }
-  }, [persistPreviewUsage, resetFlowState, user]);
 
   const handleTemplateSelect = useCallback(
     (templateId: WizardTemplateId | "") => {
@@ -950,13 +939,13 @@ function WizardPageInner() {
                 id={`wizard-question-${question.id}`}
                 value={value}
                 onChange={(event) => handleAnswerChange(question, event.target.value)}
-                className="min-h-[140px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-[color:var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[color:var(--color-primary-light)]"
+                className="min-h-[140px] w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               />
               <div className="flex justify-end">
                 <button
                   type="button"
                   onClick={handleSanitize}
-                  className="text-xs font-semibold text-primary underline-offset-2 hover:underline"
+                  className="text-xs font-semibold text-emerald-600 underline-offset-2 hover:underline"
                 >
                   Sanitize text
                 </button>
@@ -983,7 +972,7 @@ function WizardPageInner() {
                   nextValue === "" ? undefined : Number(nextValue),
                 );
               }}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-[color:var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[color:var(--color-primary-light)]"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
             />
           );
         }
@@ -1003,7 +992,7 @@ function WizardPageInner() {
                 max={10}
                 value={value}
                 onChange={(event) => handleAnswerChange(question, Number(event.target.value))}
-                className="h-2 w-full cursor-pointer appearance-none rounded bg-slate-200 accent-[color:var(--color-primary)]"
+                className="h-2 w-full cursor-pointer appearance-none rounded bg-slate-200 accent-emerald-500"
               />
               <div className="flex items-center justify-between text-xs text-slate-500">
                 <span>1</span>
@@ -1020,7 +1009,7 @@ function WizardPageInner() {
               id={`wizard-question-${question.id}`}
               value={value}
               onChange={(event) => handleAnswerChange(question, event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-[color:var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[color:var(--color-primary-light)]"
+              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
             >
               <option value="" disabled>
                 Select an option
@@ -1044,7 +1033,7 @@ function WizardPageInner() {
                 return (
                   <label
                     key={option}
-                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition hover:border-primary-light"
+                    className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-2 text-sm text-slate-700 shadow-sm transition hover:border-emerald-200"
                   >
                     <input
                       type="checkbox"
@@ -1055,7 +1044,7 @@ function WizardPageInner() {
                           : selectedValues.filter((value) => value !== option);
                         handleAnswerChange(question, nextSelection);
                       }}
-                      className="h-4 w-4 rounded border-slate-300 accent-[color:var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary)]"
+                      className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
                     />
                     <span>{option}</span>
                   </label>
@@ -1103,6 +1092,24 @@ function WizardPageInner() {
       console.error("Copy failed", error);
       setCopyStatus("error");
       window.setTimeout(() => setCopyStatus("idle"), 3200);
+    }
+  };
+
+  const handleSignOut = async () => {
+    if (!supabase) {
+      return;
+    }
+
+    try {
+      await supabase.auth.signOut();
+      setSelectedTemplateId(null);
+      setRole("patient");
+      setGoal("learn-basics");
+      resetFlowState();
+      persistPreviewUsage(false);
+      trackEvent("auth_signed_out", { source: "wizard" });
+    } catch (error) {
+      console.error("Sign out failed", error);
     }
   };
 
@@ -1190,9 +1197,9 @@ function WizardPageInner() {
     }
   };
 
-  const showPaywall = isLoggedIn && !profileLoading && !isSubscriber;
-  const showFreePreviewNotice = !profileLoading && !isSubscriber && freePreviewUsed;
-  const showEligibleBanner = !profileLoading && !isSubscriber && !freePreviewUsed;
+  const showPaywall = isLoggedIn && !isSubscriber;
+  const showFreePreviewNotice = !isSubscriber && freePreviewUsed;
+  const showEligibleBanner = !isSubscriber && !freePreviewUsed;
 
   useEffect(() => {
     if (showPaywall && !paywallTrackedRef.current) {
@@ -1204,57 +1211,89 @@ function WizardPageInner() {
   }, [freePreviewUsed, showPaywall]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[color:var(--color-primary-light)] via-[color:var(--background)] to-[color:var(--color-secondary-light)] text-slate-900">
-      <SiteHeader />
-
-      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 pb-16 pt-10 md:px-10">
-        <section className="grid gap-4 rounded-3xl border border-primary-light bg-white/92 p-6 shadow-lg shadow">
-          <span className="w-fit rounded-full bg-primary-light px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
-            Guided builder workspace
-          </span>
-          <div className="flex flex-wrap items-center gap-3">
-            <span
-              className={
-                "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold " +
-                (isSubscriber
-                  ? "bg-primary-light text-primary"
-                  : isLoggedIn
-                    ? "bg-primary-light text-primary"
-                    : "bg-slate-100 text-slate-700")
-              }
-              title={isSubscriber ? "Active subscriber" : isLoggedIn ? "Logged in (free preview)" : "Anonymous (free preview)"}
-            >
-              {isSubscriber ? "Plan: Unlimited" : isLoggedIn ? "Plan: Free (account)" : "Plan: Free (anon)"}
+    <div className="min-h-screen bg-gradient-to-b from-emerald-50 via-white to-sky-50 text-slate-900">
+      <header className="border-b border-emerald-100 bg-white/80">
+        <div className="mx-auto flex w-full max-w-5xl flex-col gap-4 px-6 py-8 md:flex-row md:items-center md:justify-between md:px-10">
+          <div className="flex items-center gap-3">
+            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-100 text-lg font-semibold text-emerald-800 shadow-sm">
+              MP
             </span>
+            <div>
+              <p className="text-base font-semibold text-slate-800">Mediprompt Wizard</p>
+              <p className="text-sm text-slate-600">
+                Structured prompts with HIPAA-safe guardrails
+              </p>
+              <div className="mt-2">
+                <span
+                  className={
+                    "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-semibold " +
+                    (isSubscriber
+                      ? "bg-emerald-100 text-emerald-700"
+                      : isLoggedIn
+                        ? "bg-sky-100 text-sky-700"
+                        : "bg-slate-100 text-slate-700")
+                  }
+                  title={isSubscriber ? "Active subscriber" : isLoggedIn ? "Logged in (free preview)" : "Anonymous (free preview)"}
+                >
+                  {isSubscriber ? "Plan: Unlimited" : isLoggedIn ? "Plan: Free (account)" : "Plan: Free (anon)"}
+                </span>
+              </div>
+            </div>
           </div>
+          <div className="flex flex-wrap items-center gap-3 text-sm font-medium">
+            <Link
+              href="/"
+              className="rounded-full border border-slate-200 px-5 py-2 text-slate-600 transition hover:border-emerald-400 hover:text-emerald-600"
+            >
+              Back to landing preview
+            </Link>
+            {user ? (
+              <button
+                type="button"
+                onClick={handleSignOut}
+                className="rounded-full border border-slate-300 px-5 py-2 text-slate-600 transition hover:border-emerald-400 hover:text-emerald-600"
+              >
+                Sign out
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => triggerAuthModal("wizard-header")}
+                className="rounded-full border border-emerald-400 px-5 py-2 text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/60 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                disabled={authLoading}
+              >
+                Sign in
+              </button>
+            )}
+          </div>
+        </div>
+      </header>
+
+      <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-6 py-10 md:px-10">
+        <section className="grid gap-4">
+          <span className="w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
+            Wizard workspace
+          </span>
           <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
             Tailor safer AI prompts with structured context.
           </h1>
           <p className="text-base text-slate-700 md:text-lg">
             Generate one guided prompt without logging in. Create a free account afterward to sync your subscription and unlock unlimited prompt generation.
           </p>
-          <div className="flex flex-wrap items-center gap-3 text-sm font-medium text-primary">
-            <Link href="/" className="transition hover:text-primary">
-              Back to home
-            </Link>
-            <Link href="/templates" className="transition hover:text-primary">
-              Browse question templates
-            </Link>
-          </div>
         </section>
 
         {showEligibleBanner && (
-          <section className="flex items-center justify-between gap-4 rounded-3xl border border-primary-light bg-primary-light px-5 py-4 text-sm text-slate-700 shadow-sm">
+          <section className="flex items-center justify-between gap-4 rounded-3xl border border-sky-200 bg-sky-50/80 px-5 py-4 text-sm text-slate-700 shadow-sm">
             <div className="grid gap-1">
               <span className="text-sm font-semibold text-slate-900">You have 1 free tailored triage.</span>
               <span className="text-xs text-slate-600">Work through the guided questions to use your complimentary result.</span>
             </div>
-            <span className="hidden text-xs font-semibold uppercase tracking-wide text-primary sm:inline">Free preview</span>
+            <span className="hidden text-xs font-semibold uppercase tracking-wide text-sky-700 sm:inline">Free preview</span>
           </section>
         )}
 
         {!user && !authLoading && (
-          <section className="rounded-3xl border border-primary-light bg-white/92 p-6 shadow-sm">
+          <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
             <h2 className="text-lg font-semibold text-slate-900">
               Ready for more than one prompt?
             </h2>
@@ -1266,7 +1305,7 @@ function WizardPageInner() {
                 id="mp-open-auth"
                 type="button"
                 onClick={() => triggerAuthModal("wizard-gate")}
-                className="rounded-full btn-primary px-5 py-2 text-sm font-semibold"
+                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
               >
                 Log in or sign up
               </button>
@@ -1280,12 +1319,12 @@ function WizardPageInner() {
         {showPaywall && (
           <section
             id="mp-paywall"
-            className="rounded-3xl border border-primary-light bg-primary-light p-6 shadow-sm"
+            className="rounded-3xl border border-emerald-200 bg-emerald-50/90 p-6 shadow-sm"
           >
-            <h2 className="text-lg font-semibold text-primary">
+            <h2 className="text-lg font-semibold text-emerald-900">
               Subscribe to unlock unlimited triage — $9/month
             </h2>
-            <ul className="mt-3 grid gap-2 text-sm text-slate-700">
+            <ul className="mt-3 grid gap-2 text-sm text-emerald-800">
               <li>• Unlimited triage results</li>
               <li>• Advanced categories</li>
               <li>• In-app educational guidance</li>
@@ -1302,12 +1341,12 @@ function WizardPageInner() {
                   trackEvent("wizard_paywall_cta_click");
                   void handleStartCheckout();
                 }}
-                className="rounded-full btn-primary px-5 py-2 text-sm font-semibold disabled:cursor-not-allowed disabled:bg-primary-light"
+                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
                 disabled={isCreatingCheckout || isConfirmingSubscription}
               >
                 {isCreatingCheckout ? "Opening Stripe..." : "Subscribe to unlock"}
               </button>
-              <span className="text-xs text-primary">
+              <span className="text-xs text-emerald-700">
                 After payment you&apos;ll return here automatically and unlock as soon as the subscription confirms.
               </span>
             </div>
@@ -1315,7 +1354,7 @@ function WizardPageInner() {
         )}
 
         {showFreePreviewNotice && (
-          <section className="rounded-3xl border border-primary-light bg-primary-light p-5 text-sm text-slate-700 shadow-sm">
+          <section className="rounded-3xl border border-slate-200 bg-white/80 p-5 text-sm text-slate-700 shadow-sm">
             <h2 className="text-base font-semibold text-slate-900">
               Free triage used
             </h2>
@@ -1328,7 +1367,7 @@ function WizardPageInner() {
               <button
                 type="button"
                 onClick={() => triggerAuthModal("wizard-free-preview")}
-                className="mt-3 inline-flex items-center justify-center rounded-full btn-primary px-4 py-2 text-xs font-semibold"
+                className="mt-3 inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
               >
                 Sign in to continue
               </button>
@@ -1336,7 +1375,7 @@ function WizardPageInner() {
           </section>
         )}
 
-        <section className="grid gap-6 rounded-3xl border border-primary-light bg-white/92 p-6 shadow-lg shadow backdrop-blur md:p-8">
+        <section className="grid gap-6 rounded-3xl border border-sky-100 bg-white/90 p-6 shadow-lg shadow-sky-100/40 backdrop-blur md:p-8">
           <form
             id="mp-wizard-form"
             className="grid gap-6"
@@ -1350,7 +1389,7 @@ function WizardPageInner() {
                 id="mp-template"
                 value={selectedTemplateId ?? ""}
                 onChange={(event) => handleTemplateSelect(event.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-[color:var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[color:var(--color-primary-light)]"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               >
                 <option value="" disabled>
                   Select a triage path
@@ -1375,8 +1414,8 @@ function WizardPageInner() {
                     htmlFor={`mp-role-${option.value}`}
                     className={`flex cursor-pointer items-center gap-3 rounded-2xl border px-4 py-3 text-sm shadow-sm transition ${
                       role === option.value
-                        ? "border-primary bg-primary-light text-primary"
-                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-primary-light"
+                        ? "border-emerald-400 bg-emerald-50 text-emerald-900"
+                        : "border-slate-200 bg-slate-50 text-slate-700 hover:border-emerald-200"
                     }`}
                   >
                     <input
@@ -1386,7 +1425,7 @@ function WizardPageInner() {
                       value={option.value}
                       checked={role === option.value}
                       onChange={() => handleRoleChange(option.value)}
-                      className="h-4 w-4 rounded-full border-slate-300 accent-[color:var(--color-primary)] focus:ring-2 focus:ring-[color:var(--color-primary-light)]"
+                      className="h-4 w-4"
                     />
                     {option.label}
                   </label>
@@ -1402,7 +1441,7 @@ function WizardPageInner() {
                 id="mp-goal"
                 value={goal}
                 onChange={(event) => handleGoalChange(event.target.value as WizardGoal)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-[color:var(--color-primary)] focus:bg-white focus:ring-2 focus:ring-[color:var(--color-primary-light)]"
+                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-base text-slate-900 shadow-inner outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
               >
                 {goalOptions.map((option) => (
                   <option key={option.value} value={option.value}>
@@ -1472,7 +1511,7 @@ function WizardPageInner() {
                         <button
                           type="button"
                           onClick={handleRestart}
-                          className="rounded-full border border-primary px-4 py-2 text-xs font-semibold text-primary transition hover:border-primary-dark hover:text-primary-dark"
+                          className="rounded-full border border-slate-300 px-4 py-2 text-xs font-semibold text-slate-700 transition hover:border-emerald-300 hover:text-emerald-600"
                         >
                           Start over
                         </button>
@@ -1494,14 +1533,14 @@ function WizardPageInner() {
                           <button
                             type="button"
                             onClick={handleBack}
-                            className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-primary hover:text-primary"
+                            className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600"
                           >
                             Back
                           </button>
                         )}
                         <button
                           type="submit"
-                          className="rounded-full btn-primary px-6 py-2.5 text-sm font-semibold disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
+                          className="rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-700 disabled:cursor-not-allowed disabled:bg-slate-300 disabled:text-slate-600"
                           disabled={!canContinue}
                         >
                           {callToActionLabel}
@@ -1516,7 +1555,7 @@ function WizardPageInner() {
                           <button
                             type="button"
                             onClick={handleBack}
-                            className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-primary hover:text-primary"
+                            className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-600"
                           >
                             Back
                           </button>
@@ -1524,7 +1563,7 @@ function WizardPageInner() {
                         <button
                           type="button"
                           onClick={() => void finalizeFlow()}
-                          className="rounded-full btn-primary px-6 py-2.5 text-sm font-semibold"
+                          className="rounded-full bg-sky-600 px-6 py-2.5 text-sm font-semibold text-white shadow-sm shadow-sky-600/30 transition hover:bg-sky-700"
                         >
                           {callToActionLabel}
                         </button>
@@ -1551,7 +1590,7 @@ function WizardPageInner() {
                   onClick={() => handleResultModeChange("prompt")}
                   className={`rounded-full px-3 py-1 font-semibold transition ${
                     resultMode === "prompt"
-                      ? "btn-primary"
+                      ? "bg-sky-600 text-white shadow-sm shadow-sky-600/40"
                       : "bg-slate-200 text-slate-700 hover:bg-slate-300"
                   }`}
                 >
@@ -1562,7 +1601,7 @@ function WizardPageInner() {
                   onClick={() => handleResultModeChange("guidance")}
                   className={`rounded-full px-3 py-1 font-semibold transition ${
                     resultMode === "guidance"
-                      ? "btn-primary"
+                      ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/40"
                       : "bg-slate-200 text-slate-600 hover:bg-slate-300"
                   } ${!isSubscriber ? "cursor-not-allowed opacity-40" : ""}`}
                   disabled={!isSubscriber}
@@ -1591,7 +1630,7 @@ function WizardPageInner() {
                   </p>
                 )
               ) : isFetchingGuidance ? (
-                <p className="text-primary">Generating educational guidance…</p>
+                <p className="text-sky-700">Generating educational guidance…</p>
               ) : guidanceSections ? (
                 <div className="grid gap-4">
                   <div>
@@ -1649,14 +1688,14 @@ function WizardPageInner() {
               )}
             </div>
             {resultMode === "guidance" && guidancePayload?.systemPrompt && (
-              <div className="rounded-2xl border border-primary-light bg-primary-light p-4 text-xs text-primary">
+              <div className="rounded-2xl border border-emerald-100 bg-emerald-50/80 p-4 text-xs text-emerald-900">
                 <p className="font-semibold">LLM payload preview</p>
-                <p className="mt-2 whitespace-pre-wrap text-slate-700">
+                <p className="mt-2 whitespace-pre-wrap text-emerald-800">
                   <span className="font-semibold">System prompt:</span>
                   {"\n"}
                   {guidancePayload.systemPrompt}
                 </p>
-                <p className="mt-2 whitespace-pre-wrap text-slate-700">
+                <p className="mt-2 whitespace-pre-wrap text-emerald-800">
                   <span className="font-semibold">User prompt:</span>
                   {"\n"}
                   {guidancePayload.userPrompt}
@@ -1671,7 +1710,7 @@ function WizardPageInner() {
                 id="mp-copy-wizard"
                 type="button"
                 onClick={handleCopy}
-                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-primary hover:text-primary disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
+                className="rounded-full border border-slate-300 px-5 py-2 text-sm font-medium text-slate-700 transition hover:border-emerald-400 hover:text-emerald-600 disabled:cursor-not-allowed disabled:border-slate-200 disabled:text-slate-400"
                 disabled={
                   resultMode === "guidance"
                     ? isFetchingGuidance || !guidanceSections
@@ -1736,7 +1775,7 @@ function WizardPageInner() {
                 <button
                   type="button"
                   onClick={handlePhiContinue}
-                  className="rounded-full btn-primary px-4 py-2 text-xs font-semibold"
+                  className="rounded-full bg-emerald-600 px-4 py-2 text-xs font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700"
                 >
                   Continue anyway
                 </button>
@@ -1752,13 +1791,13 @@ function WizardPageInner() {
             Educational support only — contact licensed clinicians for medical decisions.
           </p>
           <div className="flex flex-wrap gap-4 font-medium text-slate-600">
-            <Link href="/privacy" className="hover:text-primary">
+            <Link href="/privacy" className="hover:text-emerald-600">
               Privacy
             </Link>
-            <Link href="/terms" className="hover:text-primary">
+            <Link href="/terms" className="hover:text-emerald-600">
               Terms
             </Link>
-            <Link href="/disclaimer" className="hover:text-primary">
+            <Link href="/disclaimer" className="hover:text-emerald-600">
               Disclaimer
             </Link>
           </div>

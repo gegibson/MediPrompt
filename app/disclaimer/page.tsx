@@ -1,7 +1,5 @@
 import type { Metadata } from "next";
 
-import { SiteHeader } from "@/components/site/SiteHeader";
-
 const sections: Array<{
   title: string;
   body: Array<string>;
@@ -48,10 +46,9 @@ export const metadata: Metadata = {
 
 export default function DisclaimerPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[color:var(--color-primary-light)] via-[color:var(--background)] to-[color:var(--color-secondary-light)] text-slate-900">
-      <SiteHeader />
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 pb-16 pt-6 md:px-10">
-        <span className="w-fit rounded-full bg-primary-light px-3 py-1 text-xs font-semibold uppercase tracking-wide text-primary">
+    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-emerald-50 text-slate-900">
+      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16 md:px-10">
+        <span className="w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
           Medical disclaimer
         </span>
         <div className="grid gap-4">
@@ -66,7 +63,7 @@ export default function DisclaimerPage() {
           </p>
         </div>
 
-        <section className="grid gap-8 rounded-3xl border border-primary-light bg-white/95 p-8 shadow-lg">
+        <section className="grid gap-8 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm">
           {sections.map((section) => (
             <article key={section.title} className="grid gap-3">
               <h2 className="text-xl font-semibold text-slate-900">
@@ -81,12 +78,12 @@ export default function DisclaimerPage() {
           ))}
         </section>
 
-        <section className="rounded-3xl border border-primary-light bg-primary-light/70 p-6 text-sm text-slate-800 shadow-sm md:text-base">
-          <h2 className="text-lg font-semibold text-primary">
+        <section className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-6 text-sm text-emerald-900 md:text-base">
+          <h2 className="text-lg font-semibold text-emerald-900">
             Questions about safe use?
           </h2>
           <p className="mt-2">
-            Email <a className="font-semibold text-primary underline" href="mailto:support@mediprompt.app">support@mediprompt.app</a> and we&apos;ll help you understand how to use Mediprompt responsibly.
+            Email <a className="font-semibold underline" href="mailto:support@mediprompt.app">support@mediprompt.app</a> and we&apos;ll help you understand how to use Mediprompt responsibly.
           </p>
         </section>
       </main>
