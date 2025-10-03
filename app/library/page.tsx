@@ -35,6 +35,7 @@ type Resource = {
   patientTags: string[];
   situationTags: string[];
   audienceTags: string[];
+  createdAt?: string;
 };
 
 export default function HealthcareLibraryPage() {
@@ -181,6 +182,7 @@ export default function HealthcareLibraryPage() {
         patientTags: item.patientFacingTags ?? [],
         situationTags: item.situationTags ?? [],
         audienceTags: item.audienceTags ?? [],
+        createdAt: item.createdAt,
       })),
     [items],
   );
@@ -188,18 +190,22 @@ export default function HealthcareLibraryPage() {
   const filteredResources = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
 
-    const matchesQuery = (resource: Resource) => {
+    let results = resources.filter((resource) => {
       if (!normalizedQuery) {
         return true;
       }
-
-      return [resource.title, resource.description, resource.category, ...resource.patientTags]
+      const haystack = [
+        resource.title,
+        resource.description,
+        resource.category,
+        ...resource.patientTags,
+        ...resource.situationTags,
+        ...resource.audienceTags,
+      ]
         .join(" ")
-        .toLowerCase()
-        .includes(normalizedQuery);
-    };
-
-    let results = resources.filter((resource) => matchesQuery(resource));
+        .toLowerCase();
+      return normalizedQuery.split(/\s+/).every((part) => haystack.includes(part));
+    });
 
     if (filters.categories.size) {
       results = results.filter((resource) => filters.categories.has(resource.categoryId));
@@ -217,13 +223,25 @@ export default function HealthcareLibraryPage() {
       );
     }
 
-    if (filters.sort === "title-asc") {
-      results = [...results].sort((a, b) => a.title.localeCompare(b.title));
-    } else if (filters.sort === "title-desc") {
-      results = [...results].sort((a, b) => b.title.localeCompare(a.title));
-    }
+    const scored = results.map((resource) => ({
+      resource,
+      score: scoreResource(resource, query, filters),
+    }));
 
-    return results;
+    const sorted = scored.sort((a, b) => {
+      if (filters.sort === "title-asc") {
+        return a.resource.title.localeCompare(b.resource.title);
+      }
+      if (filters.sort === "title-desc") {
+        return b.resource.title.localeCompare(a.resource.title);
+      }
+      if (filters.sort === "recent") {
+        return (Date.parse(b.resource.createdAt ?? "") || 0) - (Date.parse(a.resource.createdAt ?? "") || 0);
+      }
+      return b.score - a.score;
+    });
+
+    return sorted.map((entry) => entry.resource);
   }, [filters, resources, query]);
 
   const categoryCounts = useMemo(() => {
@@ -348,4 +366,59 @@ export default function HealthcareLibraryPage() {
       />
     </div>
   );
+}
+
+function scoreResource(resource: Resource, query: string, filters: FilterState) {
+  let score = 0;
+  const normalizedQuery = query.trim().toLowerCase();
+  if (normalizedQuery) {
+    const terms = normalizedQuery.split(/\s+/);
+    const haystack = [
+      resource.title,
+      resource.description,
+      ...resource.patientTags,
+      ...resource.situationTags,
+      ...resource.audienceTags,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    terms.forEach((term) => {
+      if (resource.title.toLowerCase().includes(term)) {
+        score += 6;
+      }
+      if (resource.patientTags.some((tag) => tag.toLowerCase().includes(term))) {
+        score += 4;
+      }
+      if (haystack.includes(term)) {
+        score += 1;
+      }
+    });
+  }
+
+  resource.situationTags.forEach((tag) => {
+    if (filters.situations.has(tag)) {
+      score += 3;
+    }
+  });
+
+  resource.audienceTags.forEach((tag) => {
+    if (filters.audiences.has(tag)) {
+      score += 3;
+    }
+  });
+
+  if (filters.categories.has(resource.categoryId)) {
+    score += 4;
+  }
+
+  if (resource.createdAt) {
+    const createdAt = Date.parse(resource.createdAt);
+    if (!Number.isNaN(createdAt)) {
+      const daysOld = (Date.now() - createdAt) / (1000 * 60 * 60 * 24);
+      score += Math.max(0, 10 - daysOld / 30);
+    }
+  }
+
+  return score;
 }

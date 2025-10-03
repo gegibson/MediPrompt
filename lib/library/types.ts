@@ -16,6 +16,7 @@ export type PromptIndexItem = {
   patientFacingTags?: string[];
   situationTags?: string[];
   audienceTags?: string[];
+  searchBoost?: number;
   createdAt?: string; // ISO
   featuredWeight?: number;
   contentType?: string;
