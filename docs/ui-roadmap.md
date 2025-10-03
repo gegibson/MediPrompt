@@ -84,14 +84,14 @@ Acceptance criteria
 Filter Panel (left sidebar on desktop, modal on mobile)
 - Width 280–320px; collapsible sections
 - Sort By: Relevance (default), Title A–Z, Title Z–A, Most Recent, Most Popular
-- Medical Categories: Primary Care, Pediatrics, Mental Health, Chronic, Preventive, Emergency, Specialty
-- Content Type: Articles, Videos, Guidelines, Research, Handouts, Tools
-- Audience: Patients, Caregivers, Clinicians, Students
-- Language: English, Spanish, Other
+- Medical Categories (patient journey): Talking to Your Doctor, Managing Medications, Procedures & Tests, Chronic Conditions, Life Stages & Prevention, Healthcare Logistics, Mental Health & Wellness, Nutrition & Lifestyle
+- When to Use (situation tags): Before appointment, After diagnosis, Starting treatment, Experiencing symptoms, Planning ahead, Emergency preparation, Daily routine, Following up on care
+- Who is this for? (audience tags): For myself, For a family member, For a child, For an aging parent, Pregnancy-related
 
 Filter UI
 - Radio for single-select (Sort); checkbox for multi-select facets
 - Reset link; Apply on mobile; active filter chips above grid
+- Search ranks title matches highest, then patient-facing/situation/audience tags, and boosts newer prompts; tagging matters for discoverability.
 
 Content Grid
 - Cards: image/icon, title, description, category tag, “Read more”
@@ -201,6 +201,32 @@ State & Data
 - Client state: filters, pagination, saved items (local or Supabase-backed)
 - Shared auth/cart using existing Supabase + Stripe hooks
 - Prompt dataset: `/data/prompts/*.json` now supports `contentType`, `audiences`, `languages`, `createdAt`, `updatedAt`; run `npm run library:build-index` after editing to refresh `public/data/prompts.index.json`.
+- Prompt metadata fields (MVP):
+  - `categoryId` (one of the eight patient journey categories)
+  - `subcategory` (optional string for future grouping)
+  - `patientFacingTags` (array of plain-language keywords surfaced in search)
+  - `situationTags` (array of IDs from "When to Use" filter)
+  - `audienceTags` (array of IDs from "Who is this for?" filter)
+  - Optional `contentType`, `languages`, `searchBoost`, `createdAt`, `updatedAt`
+- Example prompt JSON:
+
+```json
+{
+  "id": "primary-care-intake-checklist",
+  "title": "Primary Care Intake Checklist",
+  "shortDescription": "Organize pre-visit screenings, vitals, and consent reminders before a family medicine appointment.",
+  "categoryId": "talking-to-your-doctor",
+  "subcategory": "preparing-for-appointments",
+  "patientFacingTags": ["New patient visit", "Annual checkup", "Family doctor"],
+  "situationTags": ["before-appointment", "planning-ahead"],
+  "audienceTags": ["for-myself", "for-family-member"],
+  "keywords": ["intake", "screening", "consent"],
+  "createdAt": "2024-10-03T00:00:00.000Z",
+  "updatedAt": "2024-10-03T00:00:00.000Z",
+  "contentType": "Guideline",
+  "body": "..."
+}
+```
 
 ## 11) Implementation Priority & Milestones
 
