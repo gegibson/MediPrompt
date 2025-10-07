@@ -1,19 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import {
-  type MouseEvent as ReactMouseEvent,
-  useRef,
-} from "react";
 
 import { useAuthContext } from "@/components/auth/AuthProvider";
-import { LibraryShell } from "@/components/library/LibraryShell";
 import { trackEvent } from "@/lib/analytics/track";
-import { isLibraryEnabled } from "@/lib/library/flags";
 
 export default function LandingPage() {
   const { user, supabase, openAuthModal, loading } = useAuthContext();
-  const promptLibraryRef = useRef<HTMLElement | null>(null);
 
   const handleCtaClick = (payload: {
     location: string;
@@ -38,24 +31,6 @@ export default function LandingPage() {
       trackEvent("auth_signed_out", { source: "landing" });
     } catch (error) {
       console.error("Sign out failed", error);
-    }
-  };
-
-  const handleScrollToLibrary = (event?: ReactMouseEvent) => {
-    event?.preventDefault();
-
-    handleCtaClick({
-      location: "hero",
-      type: "secondary",
-      target: "prompt-library",
-    });
-
-    if (promptLibraryRef.current) {
-      promptLibraryRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
-    }
-
-    if (typeof window !== "undefined") {
-      window.history.replaceState(null, "", "#prompt-library");
     }
   };
 
@@ -143,57 +118,11 @@ export default function LandingPage() {
             >
               Build My Custom Prompt
             </Link>
-            <Link
-              href="#prompt-library"
-              className="inline-flex items-center justify-center rounded-full border border-emerald-400 px-4 py-2 text-sm font-semibold text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100/70 focus:outline-none focus:ring-2 focus:ring-emerald-200 sm:px-5 sm:py-2.5"
-              onClick={handleScrollToLibrary}
-            >
-              Browse Free Library
-            </Link>
           </div>
         </div>
       </header>
 
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-7 px-4 pb-12 sm:px-6 sm:pb-14 md:gap-10 md:px-10 md:pb-16 lg:gap-14">
-        {isLibraryEnabled() ? (
-        <section
-          ref={promptLibraryRef}
-          id="prompt-library"
-          className="rounded-3xl border border-sky-100 bg-white/85 p-4 text-slate-800 shadow-lg shadow-sky-100/40 backdrop-blur scroll-mt-20 sm:scroll-mt-24 sm:p-6 md:p-7"
-        >
-          <LibraryShell />
-        </section>
-        ) : (
-        <section
-          id="prompt-library"
-          className="rounded-3xl border border-slate-200 bg-white/85 p-6 text-slate-800 shadow-sm scroll-mt-20 sm:p-7 md:p-8"
-        >
-          <div className="text-center">
-            <h2 className="text-[1.55rem] font-semibold leading-tight text-slate-900 sm:text-[1.6rem] md:text-[1.75rem]">
-              Healthcare Library
-            </h2>
-            <p className="mt-2 text-[13px] text-slate-600 sm:text-sm">
-              Library coming soon. Use the Wizard to build a custom prompt in the meantime.
-            </p>
-            <div className="mt-4">
-              <Link
-                href="/wizard"
-                className="inline-flex items-center justify-center rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-lg shadow-emerald-600/20 transition hover:bg-emerald-700 sm:px-5 sm:py-2.5"
-                onClick={() =>
-                  handleCtaClick({
-                    location: "placeholder",
-                    type: "primary",
-                    target: "wizard",
-                  })
-                }
-              >
-                Open Wizard
-              </Link>
-            </div>
-          </div>
-        </section>
-        )}
-
         <section className="rounded-3xl border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-sky-50 p-6 text-slate-800 shadow-lg shadow-emerald-100/40 sm:p-7 md:p-8">
           <div className="grid gap-5 sm:gap-6 md:grid-cols-[minmax(0,1.25fr)_minmax(0,0.9fr)] md:items-center md:gap-8 lg:gap-10">
             <div className="grid gap-3.5 sm:gap-4">
