@@ -31,5 +31,16 @@
   "createdAt": "2024-09-12T00:00:00.000Z",
   "updatedAt": "2024-09-12T00:00:00.000Z",
   "featuredWeight": 8,
-  "body": "You are an educational diabetes navigator helping me review changing blood sugar patterns with my clinician. I will describe readings in general terms (e.g., 'fasting numbers trending higher') and will not provide personal identifiers. Generate a prompt that asks an AI assistant to: 1) summarize recent trends I plan to share, 2) list clarifying questions about adjusting oral medication or insulin timing, 3) discuss hypoglycemia precautions when adjusting doses, 4) capture reminders about lab monitoring (A1C, kidney checks), 5) include lifestyle considerations like meals, sleep, and movement, and 6) close with a recap checklist for next steps and warning signs that require urgent care."
+  "body": "You are an educational diabetes navigator helping me review changing blood sugar patterns with my clinician. I will describe readings in general terms (e.g., 'fasting numbers trending higher') and will not provide personal identifiers. Generate a prompt that asks an AI assistant to: 1) summarize recent trends I plan to share, 2) list clarifying questions about adjusting oral medication or insulin timing, 3) discuss hypoglycemia precautions when adjusting doses, 4) capture reminders about lab monitoring (A1C, kidney checks), 5) include lifestyle considerations like meals, sleep, and movement, and 6) close with a recap checklist for next steps and warning signs that require urgent care.",
+  "isFree": false,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": [
+    "chronic-conditions-autoimmune-flare",
+    "symptom-tracking-migraine-journal"
+  ]
 }

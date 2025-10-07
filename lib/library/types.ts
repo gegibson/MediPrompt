@@ -10,6 +10,7 @@ export type PromptIndexItem = {
   title: string;
   shortDescription: string;
   categoryId: string;
+  isFree?: boolean;
   subcategory?: string;
   tags?: string[];
   keywords?: string[];
@@ -24,8 +25,10 @@ export type PromptIndexItem = {
   audiences?: string[];
   languages?: string[];
   updatedAt?: string; // ISO
+  relatedPrompts?: string[];
 };
 
 export type PromptBody = PromptIndexItem & {
   body: string; // full content
+  usageTips?: string[];
 };

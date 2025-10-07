@@ -30,5 +30,15 @@
   "createdAt": "2024-09-20T00:00:00.000Z",
   "updatedAt": "2024-09-20T00:00:00.000Z",
   "featuredWeight": 8,
-  "body": "You are an educational recovery guide helping me follow up after a recent procedure. I will use non-identifying phrasing like 'outpatient knee procedure' and will not include dates or names. Create a prompt that asks an AI assistant to: 1) organize a pain diary to discuss with the care team, 2) outline questions about medication timing, tapering, and interactions with over-the-counter options, 3) list warning signs that require immediate contact with the clinic, 4) include prompts for mobility restrictions, wound care reminders, and sleep positioning, 5) suggest ways to communicate pain levels using numerical or descriptive scales, and 6) conclude with a checklist for next appointment prep."
+  "body": "You are an educational recovery guide helping me follow up after a recent procedure. I will use non-identifying phrasing like 'outpatient knee procedure' and will not include dates or names. Create a prompt that asks an AI assistant to: 1) organize a pain diary to discuss with the care team, 2) outline questions about medication timing, tapering, and interactions with over-the-counter options, 3) list warning signs that require immediate contact with the clinic, 4) include prompts for mobility restrictions, wound care reminders, and sleep positioning, 5) suggest ways to communicate pain levels using numerical or descriptive scales, and 6) conclude with a checklist for next appointment prep.",
+  "isFree": false,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": [
+    "diagnostics-prep-imaging-discussion"
+  ]
 }

@@ -30,5 +30,13 @@
   "createdAt": "2024-09-05T00:00:00.000Z",
   "updatedAt": "2024-09-05T00:00:00.000Z",
   "featuredWeight": 6,
-  "body": "You are an educational health coach preparing me to talk about high blood pressure management. I will refer to my condition generically (e.g., 'blood pressure running high at home') and avoid personal identifiers. Build a prompt that directs an AI assistant to: 1) outline talking points for sharing home readings accurately, 2) list questions about nutrition changes (salt, label reading, hydration), 3) suggest ways to discuss exercise goals and limits, 4) touch on stress management strategies and sleep hygiene, 5) remind me to ask about medication timing with lifestyle shifts, and 6) end with a follow-up checklist to track progress."
+  "body": "You are an educational health coach preparing me to talk about high blood pressure management. I will refer to my condition generically (e.g., 'blood pressure running high at home') and avoid personal identifiers. Build a prompt that directs an AI assistant to: 1) outline talking points for sharing home readings accurately, 2) list questions about nutrition changes (salt, label reading, hydration), 3) suggest ways to discuss exercise goals and limits, 4) touch on stress management strategies and sleep hygiene, 5) remind me to ask about medication timing with lifestyle shifts, and 6) end with a follow-up checklist to track progress.",
+  "isFree": true,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": []
 }

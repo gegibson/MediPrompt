@@ -30,5 +30,15 @@
   "createdAt": "2024-09-25T00:00:00.000Z",
   "updatedAt": "2024-09-25T00:00:00.000Z",
   "featuredWeight": 7,
-  "body": "You are an educational medication safety partner helping me evaluate potential side effects from a treatment. I will speak in general terms (e.g., 'new dizziness after evening dose') and will not share identifiers. Craft a prompt so an AI assistant: 1) helps log when symptoms began relative to dosing, 2) lists questions about expected vs. urgent side effects, 3) suggests checking interactions with supplements, 4) encourages discussing dose timing or supportive care options, 5) includes reminders about when to contact emergency services, and 6) ends with a concise summary I can read to my clinician."
+  "body": "You are an educational medication safety partner helping me evaluate potential side effects from a treatment. I will speak in general terms (e.g., 'new dizziness after evening dose') and will not share identifiers. Craft a prompt so an AI assistant: 1) helps log when symptoms began relative to dosing, 2) lists questions about expected vs. urgent side effects, 3) suggests checking interactions with supplements, 4) encourages discussing dose timing or supportive care options, 5) includes reminders about when to contact emergency services, and 6) ends with a concise summary I can read to my clinician.",
+  "isFree": false,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": [
+    "medication-management-new-inhaler"
+  ]
 }

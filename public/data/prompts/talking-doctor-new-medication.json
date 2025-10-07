@@ -30,5 +30,15 @@
   "createdAt": "2024-09-01T00:00:00.000Z",
   "updatedAt": "2024-09-01T00:00:00.000Z",
   "featuredWeight": 10,
-  "body": "You are an educational health communication coach... (stubbed body)."
+  "body": "You are an educational health communication coach... (stubbed body).",
+  "isFree": true,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": [
+    "primary-care-intake-checklist"
+  ]
 }

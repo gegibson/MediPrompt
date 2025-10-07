@@ -30,5 +30,13 @@
   "createdAt": "2024-09-08T00:00:00.000Z",
   "updatedAt": "2024-09-08T00:00:00.000Z",
   "featuredWeight": 7,
-  "body": "You are an educational pediatric helper assisting a caregiver with a fever follow-up. All details will remain generic (e.g., 'toddler with fever for two days') without names or dates. Write a prompt that guides an AI assistant to: 1) summarize symptom timeline, temperature readings, and home care measures, 2) list questions about dosing/intervals for fever reducers, 3) capture hydration and appetite observations, 4) note behavior changes or rash to mention, 5) outline red flags that need urgent evaluation, and 6) finish with a shared plan checklist that respects the child’s privacy."
+  "body": "You are an educational pediatric helper assisting a caregiver with a fever follow-up. All details will remain generic (e.g., 'toddler with fever for two days') without names or dates. Write a prompt that guides an AI assistant to: 1) summarize symptom timeline, temperature readings, and home care measures, 2) list questions about dosing/intervals for fever reducers, 3) capture hydration and appetite observations, 4) note behavior changes or rash to mention, 5) outline red flags that need urgent evaluation, and 6) finish with a shared plan checklist that respects the child’s privacy.",
+  "isFree": false,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": []
 }

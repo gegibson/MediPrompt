@@ -38,5 +38,15 @@
   "languages": [
     "en"
   ],
-  "body": "You are an educational care coordinator supporting a primary care clinic. I will only describe patients in general terms such as 'adult establishing care' and will not provide any names, dates of birth, insurance IDs, or other personal identifiers. Create a prompt I can give an AI assistant that:\n1. Gathers a concise summary of the visit reason, chronic conditions, medications, and allergies using generic descriptions.\n2. Guides collection of vitals and screening results (blood pressure, BMI, PHQ-9, immunizations) with clear units and ranges.\n3. Prompts for social history updates, preventive care gaps, and consent forms that may need attention.\n4. Flags red-flag symptoms that should be escalated to the clinician immediately.\n5. Suggests empathetic closing language and follow-up reminders for the patient.\n\nThe AI assistant should remind the user to avoid PHI, encourage verification with the care team, and provide the final checklist in a tidy, copy-ready format."
+  "body": "You are an educational care coordinator supporting a primary care clinic. I will only describe patients in general terms such as 'adult establishing care' and will not provide any names, dates of birth, insurance IDs, or other personal identifiers. Create a prompt I can give an AI assistant that:\n1. Gathers a concise summary of the visit reason, chronic conditions, medications, and allergies using generic descriptions.\n2. Guides collection of vitals and screening results (blood pressure, BMI, PHQ-9, immunizations) with clear units and ranges.\n3. Prompts for social history updates, preventive care gaps, and consent forms that may need attention.\n4. Flags red-flag symptoms that should be escalated to the clinician immediately.\n5. Suggests empathetic closing language and follow-up reminders for the patient.\n\nThe AI assistant should remind the user to avoid PHI, encourage verification with the care team, and provide the final checklist in a tidy, copy-ready format.",
+  "isFree": true,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": [
+    "talking-doctor-new-medication"
+  ]
 }

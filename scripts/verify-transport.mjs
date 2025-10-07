@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-/* eslint-disable no-console */
 import { readFileSync, existsSync } from "node:fs";
 import { join } from "node:path";
 

@@ -44,6 +44,7 @@ import {
   readPreviewUsage,
   writePreviewUsage,
 } from "@/lib/wizard/storage/previewFlag";
+import { CHECKOUT_SESSION_STORAGE_KEY } from "@/lib/subscription/checkout";
 
 type WizardRole = "patient" | "caregiver";
 type WizardGoal = "learn-basics" | "medications" | "insurance";
@@ -55,8 +56,6 @@ type MeResponse = {
   email: string;
   is_subscriber: boolean;
 };
-
-const CHECKOUT_SESSION_STORAGE_KEY = "mp-last-checkout-session";
 
 const roleOptions: Array<{ label: string; value: WizardRole }> = [
   { label: "Patient", value: "patient" },
@@ -420,9 +419,7 @@ function WizardPageInner() {
     answers,
     currentQuestion,
     currentQuestionIndex,
-    freePreviewUsed,
     isEmergencyStop,
-    isLoggedIn,
     accessState.state,
     selectedTemplate,
     visibleQuestions.length,
@@ -800,7 +797,6 @@ function WizardPageInner() {
     goal,
     buildPromptOutput,
     isEmergencyStop,
-    isLoggedIn,
     isSubscriber,
     persistPreviewUsage,
     phiOverride,

@@ -23,7 +23,52 @@ function ensureSessionPlaceholder(url: string) {
   return `${url}${url.includes("?") ? "&" : "?"}session_id={CHECKOUT_SESSION_ID}`;
 }
 
+function buildReturnUrls(origin: string, rawPath: unknown) {
+  if (typeof rawPath !== "string") {
+    return null;
+  }
+
+  const trimmed = rawPath.trim();
+
+  if (!trimmed.startsWith("/") || trimmed.startsWith("//")) {
+    return null;
+  }
+
+  try {
+    const base = new URL(trimmed, origin);
+
+    if (base.origin !== origin) {
+      return null;
+    }
+
+    const successUrl = new URL(base);
+    successUrl.searchParams.set("checkout", "success");
+    successUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
+
+    const cancelUrl = new URL(base);
+    cancelUrl.searchParams.set("checkout", "cancelled");
+
+    return {
+      successUrl: successUrl.toString(),
+      cancelUrl: cancelUrl.toString(),
+    };
+  } catch {
+    return null;
+  }
+}
+
 export async function POST(request: Request) {
+  let requestedReturnPath: string | null = null;
+
+  try {
+    const payload = await request.json();
+    if (payload && typeof payload.returnPath === "string") {
+      requestedReturnPath = payload.returnPath;
+    }
+  } catch {
+    // ignore empty body
+  }
+
   if (!isSupabaseConfigured()) {
     return NextResponse.json(
       {
@@ -83,6 +128,7 @@ export async function POST(request: Request) {
 
   const originUrl = new URL(request.url);
   const origin = `${originUrl.protocol}//${originUrl.host}`;
+  const returnUrls = buildReturnUrls(origin, requestedReturnPath);
 
   const defaultSuccessUrl = (() => {
     const success = new URL("/wizard", origin);
@@ -91,17 +137,19 @@ export async function POST(request: Request) {
     return success.toString();
   })();
 
-  const successUrl = ensureSessionPlaceholder(
-    stripeCheckoutSuccessUrl || defaultSuccessUrl,
-  );
+  const successUrl = returnUrls?.successUrl
+    ? returnUrls.successUrl
+    : ensureSessionPlaceholder(stripeCheckoutSuccessUrl || defaultSuccessUrl);
 
-  const cancelUrl = stripeCheckoutCancelUrl
-    ? stripeCheckoutCancelUrl
-    : (() => {
-        const cancel = new URL("/wizard", origin);
-        cancel.searchParams.set("checkout", "cancelled");
-        return cancel.toString();
-      })();
+  const cancelUrl = returnUrls?.cancelUrl
+    ? returnUrls.cancelUrl
+    : stripeCheckoutCancelUrl
+      ? stripeCheckoutCancelUrl
+      : (() => {
+          const cancel = new URL("/wizard", origin);
+          cancel.searchParams.set("checkout", "cancelled");
+          return cancel.toString();
+        })();
 
   try {
     const session = await stripe.checkout.sessions.create({

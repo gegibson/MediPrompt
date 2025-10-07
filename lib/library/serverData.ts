@@ -20,9 +20,24 @@ export const getServerCategories = cache(async (): Promise<LibraryCategory[]> =>
   }
 });
 
+const DEFAULT_USAGE_TIPS = [
+  "Keep names, dates, and policy numbers out of the prompt.",
+  "Verify AI-generated advice with your clinician before acting.",
+  "Use the prompt as a guide, not a diagnosis.",
+];
+
+function applyPromptDefaults<T extends PromptIndexItem>(prompt: T): T {
+  return {
+    isFree: true,
+    relatedPrompts: [],
+    ...prompt,
+  };
+}
+
 export const getServerPromptIndex = cache(async (): Promise<PromptIndexItem[]> => {
   try {
-    return await readJson<PromptIndexItem[]>("prompts.index.json");
+    const index = await readJson<PromptIndexItem[]>("prompts.index.json");
+    return index.map(applyPromptDefaults);
   } catch {
     return [];
   }
@@ -30,7 +45,12 @@ export const getServerPromptIndex = cache(async (): Promise<PromptIndexItem[]> =
 
 export const getServerPromptBody = cache(async (id: string): Promise<PromptBody | null> => {
   try {
-    return await readJson<PromptBody>(path.join("prompts", `${id}.json`));
+    const prompt = await readJson<PromptBody>(path.join("prompts", `${id}.json`));
+    const withDefaults = applyPromptDefaults(prompt);
+    return {
+      ...withDefaults,
+      usageTips: prompt.usageTips && prompt.usageTips.length > 0 ? prompt.usageTips : DEFAULT_USAGE_TIPS,
+    };
   } catch {
     return null;
   }

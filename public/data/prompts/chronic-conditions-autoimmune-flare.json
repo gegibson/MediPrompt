@@ -31,5 +31,16 @@
   "createdAt": "2024-09-19T00:00:00.000Z",
   "updatedAt": "2024-09-19T00:00:00.000Z",
   "featuredWeight": 7,
-  "body": "You are an educational rheumatology guide supporting tracking of autoimmune flares. I will use general descriptions such as 'joint stiffness flare' and will not provide identifiers. Compose a prompt for an AI assistant that: 1) structures daily symptom logging (pain, swelling, fatigue), 2) relates possible triggers like weather or stress, 3) lists questions about medication adjustments or bridging therapy, 4) highlights warning signs needing urgent contact, 5) encourages documenting impact on daily activities, and 6) wraps with a checklist for labs, imaging, or refills to request."
+  "body": "You are an educational rheumatology guide supporting tracking of autoimmune flares. I will use general descriptions such as 'joint stiffness flare' and will not provide identifiers. Compose a prompt for an AI assistant that: 1) structures daily symptom logging (pain, swelling, fatigue), 2) relates possible triggers like weather or stress, 3) lists questions about medication adjustments or bridging therapy, 4) highlights warning signs needing urgent contact, 5) encourages documenting impact on daily activities, and 6) wraps with a checklist for labs, imaging, or refills to request.",
+  "isFree": false,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": [
+    "chronic-conditions-diabetes-adjustment",
+    "symptom-tracking-migraine-journal"
+  ]
 }

@@ -50,7 +50,8 @@ async function readJsonIfExists(file) {
 }
 
 function toIndexItem(prompt) {
-  const { body, ...meta } = prompt;
+  const meta = { ...prompt };
+  delete meta.body;
   return meta;
 }
 

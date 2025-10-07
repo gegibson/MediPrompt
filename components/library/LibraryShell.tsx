@@ -68,9 +68,10 @@ function LibrarySection() {
       setLoading(false);
     }
     load();
+    const timeouts = copyTimeouts.current;
     return () => {
       ignore = true;
-      Object.values(copyTimeouts.current).forEach((timeoutId) => window.clearTimeout(timeoutId));
+      Object.values(timeouts).forEach((timeoutId) => window.clearTimeout(timeoutId));
     };
   }, []);
 

@@ -29,5 +29,13 @@
   "createdAt": "2024-09-22T00:00:00.000Z",
   "updatedAt": "2024-09-22T00:00:00.000Z",
   "featuredWeight": 6,
-  "body": "You are an educational mental health reflection partner helping me get ready for a therapy session. I will describe experiences in broad terms (e.g., 'increased anxiety before presentations') without sharing names or identifiers. Generate a prompt that tells an AI assistant to: 1) recap emotional highs and lows since the last visit, 2) capture triggers and coping strategies tried, 3) list progress on therapy goals, 4) suggest questions about adjusting techniques or homework, 5) remind me to discuss supports and boundaries, and 6) end with a grounding exercise or affirmation to bring into the appointment."
+  "body": "You are an educational mental health reflection partner helping me get ready for a therapy session. I will describe experiences in broad terms (e.g., 'increased anxiety before presentations') without sharing names or identifiers. Generate a prompt that tells an AI assistant to: 1) recap emotional highs and lows since the last visit, 2) capture triggers and coping strategies tried, 3) list progress on therapy goals, 4) suggest questions about adjusting techniques or homework, 5) remind me to discuss supports and boundaries, and 6) end with a grounding exercise or affirmation to bring into the appointment.",
+  "isFree": true,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": []
 }

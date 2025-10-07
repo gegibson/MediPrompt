@@ -28,5 +28,13 @@
   "createdAt": "2024-09-10T00:00:00.000Z",
   "updatedAt": "2024-09-10T00:00:00.000Z",
   "featuredWeight": 6,
-  "body": "You are an educational authorization navigator... (stubbed body)."
+  "body": "You are an educational authorization navigator... (stubbed body).",
+  "isFree": false,
+  "usageTips": [
+    "Keep names, dates, and policy numbers out of the prompt.",
+    "Review AI-generated guidance with your clinician before acting.",
+    "Highlight the questions that matter most so your visit stays focused.",
+    "Call emergency services for urgent symptoms instead of relying on AI."
+  ],
+  "relatedPrompts": []
 }
