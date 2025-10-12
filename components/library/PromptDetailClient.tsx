@@ -5,7 +5,6 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import { PromptActionPanel } from "@/components/library/PromptActionPanel";
-import { SharePromptButton } from "@/components/library/SharePromptButton";
 import { useAuthContext } from "@/components/auth/AuthProvider";
 import type {
   LibraryCategory,
@@ -30,6 +29,7 @@ const SUBSCRIPTION_BENEFITS = [
 ];
 
 const LOCK_ICON = "\uD83D\uDD12";
+
 
 export type RelatedPrompt = PromptIndexItem & {
   category?: LibraryCategory | null;
@@ -89,6 +89,7 @@ export function PromptDetailClient({
   const lockedViewTrackedRef = useRef(false);
   const checkoutHandledRef = useRef(false);
   const successHandledRef = useRef(false);
+
 
   const hasAccess = prompt.isFree || subscriptionState.isSubscriber;
   const isCheckingSubscription =
@@ -446,12 +447,12 @@ export function PromptDetailClient({
   );
 
   const headerBadge = prompt.isFree ? (
-    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-      FREE
+    <span className="inline-flex rounded-full bg-[var(--color-secondary-background)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-accent)]">
+      Free
     </span>
   ) : (
-    <span className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-      {LOCK_ICON} Premium
+    <span className="inline-flex rounded-full bg-[var(--color-secondary-background)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
+      Premium
     </span>
   );
 
@@ -464,41 +465,41 @@ export function PromptDetailClient({
   const alertTone = alert
     ? alert.kind === "success"
       ? {
-          icon: "✅",
-          container: "bg-emerald-50 text-emerald-900 border border-emerald-200",
-          button: "text-emerald-700 hover:text-emerald-900",
+          icon: "✔",
+          container: "bg-[#e7f1ff] text-[var(--color-text-primary)] border border-[#c5dcff]",
+          button: "text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]",
         }
       : alert.kind === "error"
         ? {
-            icon: "⚠️",
-            container: "bg-rose-50 text-rose-900 border border-rose-200",
+            icon: "!",
+            container: "bg-rose-50 text-rose-700 border border-rose-200",
             button: "text-rose-700 hover:text-rose-900",
           }
         : {
-            icon: "ℹ️",
-            container: "bg-sky-50 text-sky-900 border border-sky-200",
-            button: "text-sky-700 hover:text-sky-900",
+            icon: "ℹ",
+            container: "bg-[var(--color-secondary-background)] text-[var(--color-text-primary)] border border-[var(--color-secondary-background)]",
+            button: "text-[var(--color-accent)] hover:text-[var(--color-accent-hover)]",
           }
     : null;
 
   return (
-    <div className="bg-[var(--color-surface-subtle)] pb-16">
-      <header className="bg-[var(--color-primary)] text-white">
-        <div className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-12 sm:gap-8 sm:px-6 lg:px-8">
+    <div className="bg-[var(--color-secondary-background)] pb-16">
+      <header className="relative bg-[var(--color-primary-background)] text-[var(--color-text-primary)] shadow-[0_6px_20px_rgba(0,0,0,0.06)]">
+        <div className="relative mx-auto flex w-full max-w-5xl flex-col gap-6 px-5 py-12 sm:gap-8 sm:px-6 lg:px-8">
           <script
             type="application/ld+json"
             dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
             suppressHydrationWarning
           />
-          <nav className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.2em] text-white/70">
-            <Link href="/library" className="transition hover:text-white">
+          <nav className="flex flex-wrap items-center gap-2 text-xs uppercase tracking-[0.28em] text-[var(--color-text-secondary)]">
+            <Link href="/library" className="transition hover:text-[var(--color-text-primary)]">
               Healthcare Library
             </Link>
             <span aria-hidden="true">/</span>
             {category ? (
               <Link
                 href={`/library?category=${category.id}`}
-                className="transition hover:text-white"
+                className="transition hover:text-[var(--color-text-primary)]"
               >
                 {category.name}
               </Link>
@@ -506,23 +507,22 @@ export function PromptDetailClient({
               <span>Prompt</span>
             )}
             <span aria-hidden="true">/</span>
-            <span className="text-white">{prompt.title}</span>
+            <span className="text-[var(--color-text-primary)]">{prompt.title}</span>
           </nav>
 
           <div className="space-y-5">
             <div className="inline-flex flex-wrap items-center gap-3">
               {category ? (
-                <span className="inline-flex items-center gap-2 self-start rounded-full bg-white/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em]">
-                  {category.icon}
+                <span className="inline-flex rounded-full bg-[var(--color-secondary-background)] px-3 py-1 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
                   {category.name}
                 </span>
               ) : null}
               {headerBadge}
             </div>
-            <h1 className="text-3xl font-semibold leading-tight sm:text-4xl">
+            <h1 className="text-[32px] font-bold leading-tight text-[var(--color-text-primary)] sm:text-[42px]">
               {prompt.title}
             </h1>
-            <p className="max-w-2xl text-sm text-white/80 sm:text-base">
+            <p className="max-w-2xl text-base text-[var(--color-text-secondary)]">
               {prompt.shortDescription}
             </p>
             <div className="flex flex-wrap items-center gap-3 text-sm">
@@ -538,15 +538,14 @@ export function PromptDetailClient({
                   type="button"
                   onClick={() => handleSubscribeClick("header")}
                   disabled={ctaPending}
-                  className="inline-flex items-center gap-2 rounded-full border border-white/40 bg-white/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] transition hover:bg-white/20 disabled:cursor-not-allowed disabled:opacity-60"
+                  className="inline-flex items-center gap-2 rounded-full border-2 border-[var(--color-accent)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-accent)] transition hover:bg-[#e7f1ff] disabled:cursor-not-allowed disabled:opacity-60"
                 >
                   {LOCK_ICON} Subscribe to Copy
                 </button>
               )}
-              <SharePromptButton url={shareUrl} />
               <Link
                 href="/library"
-                className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70 transition hover:text-white"
+                className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)] transition hover:text-[var(--color-accent)]"
               >
                 Back to Library
               </Link>
@@ -556,7 +555,7 @@ export function PromptDetailClient({
       </header>
 
       {alert && alertTone ? (
-        <div className={`${alertTone.container} border-y border-transparent py-3 text-sm`}>
+        <div className={`${alertTone.container} py-3 text-sm`}>
           <div className="mx-auto flex w-full max-w-5xl items-start gap-4 px-5 sm:px-6 lg:px-8">
             <span aria-hidden="true" className="mt-0.5 text-base">
               {alertTone.icon}
@@ -577,14 +576,13 @@ export function PromptDetailClient({
       ) : null}
 
       {bannerVisible ? (
-        <div className="bg-amber-50 py-3 text-sm text-amber-900">
+        <div className="bg-[#e7f1ff] py-3 text-sm text-[var(--color-text-primary)]">
           <div className="mx-auto flex w-full max-w-5xl items-start gap-4 px-5 sm:px-6 lg:px-8">
-            <span aria-hidden="true" className="mt-0.5 text-base">
-              \uD83D\uDCDA
-            </span>
             <div className="flex-1">
-              <strong className="block font-semibold">This is a premium prompt.</strong>
-              <span className="block text-amber-800">
+              <strong className="block font-semibold">
+                This prompt is part of the premium collection.
+              </strong>
+              <span className="block text-[var(--color-text-secondary)]">
                 Subscribe for $6/month to unlock every prompt in the library.
               </span>
             </div>
@@ -593,14 +591,14 @@ export function PromptDetailClient({
                 type="button"
                 onClick={() => handleSubscribeClick("banner")}
                 disabled={ctaPending}
-                className="rounded-full bg-[var(--color-primary)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                className="btn-primary text-xs font-semibold uppercase tracking-[0.25em] disabled:cursor-not-allowed disabled:opacity-60"
               >
                 Subscribe
               </button>
               <button
                 type="button"
                 onClick={handleBannerDismiss}
-                className="text-xs font-semibold uppercase tracking-[0.2em] text-amber-700 transition hover:text-amber-900"
+                className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)] transition hover:text-[var(--color-text-primary)]"
                 aria-label="Dismiss subscription banner"
               >
                 ✕
@@ -611,8 +609,8 @@ export function PromptDetailClient({
       ) : null}
 
       <main className="mx-auto flex w-full max-w-5xl flex-col gap-10 px-5 py-10 sm:px-6 lg:px-8 lg:py-12">
-        <section className="rounded-3xl border border-white/40 bg-white p-6 shadow-sm sm:p-8" aria-live="polite">
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8" aria-live="polite">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">
             Copy-ready prompt
           </h2>
           <div className="relative mt-4">
@@ -620,26 +618,26 @@ export function PromptDetailClient({
               readOnly
               aria-label="Prompt text"
               value={hasAccess ? prompt.body : previewExcerpt}
-              className="h-64 w-full resize-none rounded-2xl bg-white p-0 text-sm leading-relaxed text-[var(--color-foreground)] focus:outline-none"
+              className="h-64 w-full resize-none rounded-2xl border border-[var(--color-secondary-background)] bg-[var(--color-secondary-background)]/80 p-4 text-sm leading-relaxed text-[var(--color-text-primary)] shadow-inner focus:outline-none focus:border-[var(--color-accent)] focus:ring-2 focus:ring-[var(--color-accent)]/20"
             />
             {shouldShowLockedState ? (
-              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent via-white/80 to-white" aria-hidden="true" />
+              <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-b from-transparent via-white/85 to-white" aria-hidden="true" />
             ) : null}
             {shouldShowLockedState ? (
               <div className="absolute inset-0 flex items-center justify-center px-4">
                 <div
-                  className="pointer-events-auto w-full max-w-sm rounded-2xl bg-white/95 p-6 text-center shadow-xl"
+                  className="pointer-events-auto w-full max-w-sm rounded-2xl border border-[var(--color-secondary-background)] bg-[var(--color-primary-background)] p-6 text-center shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
                   role="dialog"
                   aria-labelledby="locked-prompt-title"
                   aria-describedby="locked-prompt-description"
                 >
-                  <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-[var(--color-primary)]/15 text-2xl text-[var(--color-primary)]">
-                    {LOCK_ICON}
-                  </div>
-                  <h3 id="locked-prompt-title" className="mt-4 text-lg font-semibold text-[var(--color-foreground)]">
+                  <h3
+                    id="locked-prompt-title"
+                    className="mt-4 text-lg font-semibold text-[var(--color-text-primary)]"
+                  >
                     Subscribe to unlock this prompt
                   </h3>
-                  <p id="locked-prompt-description" className="mt-2 text-sm text-[var(--color-muted)]">
+                  <p id="locked-prompt-description" className="mt-2 text-sm text-[var(--color-text-secondary)]">
                     Get the full prompt text, copy functionality, and quick launch shortcuts with a MediPrompt subscription.
                   </p>
 
@@ -656,7 +654,7 @@ export function PromptDetailClient({
                   ) : null}
 
                   {isCheckingSubscription ? (
-                    <p className="mt-3 text-sm font-medium text-[var(--color-muted)]">
+                    <p className="mt-3 text-sm font-medium text-[var(--color-text-secondary)]">
                       {confirmationStatus === "loading"
                         ? "Activating your subscription…"
                         : "Checking your subscription status…"}
@@ -668,7 +666,7 @@ export function PromptDetailClient({
                     onClick={() => handleSubscribeClick("overlay")}
                     disabled={ctaPending || isCheckingSubscription}
                     aria-busy={ctaPending || undefined}
-                    className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[var(--color-primary)] px-4 py-3 text-sm font-semibold text-white transition hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-70"
+                    className="mt-5 inline-flex w-full items-center justify-center rounded-full bg-[var(--color-accent)] px-4 py-3 text-sm font-semibold text-white shadow-[0_6px_16px_rgba(0,86,179,0.28)] transition hover:bg-[var(--color-accent-hover)] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {overlayButtonLabel}
                   </button>
@@ -677,13 +675,13 @@ export function PromptDetailClient({
                     <button
                       type="button"
                       onClick={handleRetrySubscriptionCheck}
-                      className="mt-3 inline-flex items-center justify-center rounded-full border border-[var(--color-primary)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-primary)] transition hover:bg-[var(--color-primary)]/10"
+                      className="mt-3 inline-flex items-center justify-center rounded-full border-2 border-[var(--color-accent)] px-4 py-2 text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-accent)] transition hover:bg-[#e7f1ff]"
                     >
                       Retry
                     </button>
                   ) : null}
 
-                  <ul className="mt-4 space-y-2 text-left text-sm text-[var(--color-muted)]">
+                  <ul className="mt-4 space-y-2 text-left text-sm text-[var(--color-text-secondary)]">
                     {SUBSCRIPTION_BENEFITS.map((benefit) => (
                       <li key={benefit} className="flex items-start gap-2">
                         <span aria-hidden="true">✓</span>
@@ -697,17 +695,15 @@ export function PromptDetailClient({
           </div>
 
           {hasAccess ? (
-            <p className="mt-4 text-xs uppercase tracking-[0.2em] text-[var(--color-muted)]">
+            <p className="mt-4 text-xs uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
               Copy button reveals quick launch options for ChatGPT, Claude, and Gemini.
             </p>
           ) : null}
         </section>
 
-        <section className="rounded-3xl border border-white/40 bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
-            Example output subscribers see
-          </h2>
-          <ul className="mt-3 space-y-2 text-sm text-[var(--color-muted)]">
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Example output subscribers see</h2>
+          <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-secondary)]">
             {examplePreview.length ? (
               examplePreview.map((snippet, index) => (
                 <li key={index}>{snippet}</li>
@@ -718,21 +714,17 @@ export function PromptDetailClient({
           </ul>
         </section>
 
-        <section className="rounded-3xl border border-white/40 bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
-            Usage Tips
-          </h2>
-          <ul className="mt-3 space-y-2 text-sm text-[var(--color-muted)]">
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Usage Tips</h2>
+          <ul className="mt-3 space-y-2 text-sm text-[var(--color-text-secondary)]">
             {resolvedUsageTips.map((tip) => (
               <li key={tip}>{tip}</li>
             ))}
           </ul>
         </section>
 
-        <section className="rounded-3xl border border-white/40 bg-white p-6 shadow-sm sm:p-8">
-          <h2 className="text-lg font-semibold text-[var(--color-foreground)]">
-            Related Prompts
-          </h2>
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Related Prompts</h2>
           {related.length ? (
             <div className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {related.map((item) => {
@@ -741,23 +733,22 @@ export function PromptDetailClient({
                   <Link
                     key={item.id}
                     href={`/library/${item.id}`}
-                    className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-[var(--color-surface)] p-5 transition hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:shadow-md"
+                    className="group flex h-full flex-col rounded-2xl bg-[var(--color-primary-background)] p-5 shadow-[0_8px_20px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
                   >
                     <div className="flex items-center justify-between gap-4">
-                      <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-[var(--color-primary)]">
-                        {relatedCategory?.icon}
+                      <span className="inline-flex text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
                         {relatedCategory?.name ?? "Prompt"}
                       </span>
                       {item.isFree ? null : (
-                        <span className="text-base" aria-label="Premium prompt">
-                          {LOCK_ICON}
+                        <span className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
+                          Premium
                         </span>
                       )}
                     </div>
-                    <h3 className="mt-3 text-base font-semibold text-[var(--color-foreground)] group-hover:text-[var(--color-primary)]">
+                    <h3 className="mt-3 text-base font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]">
                       {item.title}
                     </h3>
-                    <p className="mt-2 text-sm text-[var(--color-muted)]">
+                    <p className="mt-2 text-sm text-[var(--color-text-secondary)]">
                       {item.shortDescription}
                     </p>
                   </Link>
@@ -765,7 +756,7 @@ export function PromptDetailClient({
               })}
             </div>
           ) : (
-            <p className="mt-3 text-sm text-[var(--color-muted)]">
+            <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
               We&apos;re expanding this category—more prompts coming soon.
             </p>
           )}

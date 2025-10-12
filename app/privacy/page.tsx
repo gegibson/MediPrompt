@@ -69,51 +69,47 @@ export const metadata: Metadata = {
 
 export default function PrivacyPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-emerald-50 text-slate-900">
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16 md:px-10">
-        <span className="w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-          Privacy policy
-        </span>
-        <div className="grid gap-4">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+    <div className="bg-[var(--color-secondary-background)] text-[var(--color-text-primary)]">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-col gap-12 px-6 py-16 sm:px-8 lg:px-10">
+        <header className="max-w-3xl space-y-4">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-text-secondary)]">
+            Privacy policy
+          </span>
+          <h1 className="text-[32px] font-bold leading-tight sm:text-[42px]">
             Your health questions stay private.
           </h1>
-          <p className="text-base text-slate-700 md:text-lg">
-            Mediprompt keeps prompts in your browser and stores only the account and billing details needed to run the service. This policy explains what we collect, how we use it, and the choices you have.
+          <p className="text-base text-[var(--color-text-secondary)] sm:text-lg">
+            Mediprompt stores only the account and billing details needed to run the service. This policy covers the data we collect, how we use it, and the choices available to you.
           </p>
-          <p className="text-sm text-slate-500">
-            Last updated: March 20, 2024
-          </p>
-        </div>
+          <p className="text-sm text-[var(--color-text-secondary)]">Last updated: March 20, 2024</p>
+        </header>
 
-        <section className="grid gap-8 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm">
+        <section className="grid gap-8 rounded-3xl bg-[var(--color-primary-background)] p-8 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-10">
           {sections.map((section) => (
-            <article key={section.title} className="grid gap-3">
-              <h2 className="text-xl font-semibold text-slate-900">
+            <article key={section.title} className="space-y-3">
+              <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
                 {section.title}
               </h2>
               {section.body.map((paragraph) => (
-                <p key={paragraph} className="text-sm text-slate-600 md:text-base">
+                <p key={paragraph} className="text-base text-[var(--color-text-secondary)]">
                   {paragraph}
                 </p>
               ))}
-              {section.bullets && (
-                <ul className="list-outside list-disc space-y-2 pl-5 text-sm text-slate-600 md:text-base">
+              {section.bullets ? (
+                <ul className="list-disc space-y-2 pl-5 text-base text-[var(--color-text-secondary)]">
                   {section.bullets.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-              )}
+              ) : null}
             </article>
           ))}
         </section>
 
-        <section className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-6 text-sm text-emerald-900 md:text-base">
-          <h2 className="text-lg font-semibold text-emerald-900">
-            Questions or requests?
-          </h2>
-          <p className="mt-2">
-            Email <a className="font-semibold underline" href="mailto:support@mediprompt.app">support@mediprompt.app</a> if you want to access, update, or delete your data — we are here to help.
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Questions or requests?</h2>
+          <p className="mt-2 text-base text-[var(--color-text-secondary)]">
+            Email <a className="font-semibold text-[var(--color-accent)]" href="mailto:support@mediprompt.app">support@mediprompt.app</a> if you want to access, update, or delete your data — we’re here to help.
           </p>
         </section>
       </main>

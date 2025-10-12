@@ -11,17 +11,13 @@ type LibraryHeroProps = {
 export function LibraryHero({ query, onQueryChange, onOpenFilters }: LibraryHeroProps) {
   return (
     <header className="space-y-6">
-      <div className="overflow-hidden rounded-3xl border border-slate-200 bg-[var(--color-primary)] text-white shadow-sm">
+      <div className="overflow-hidden rounded-3xl border border-transparent bg-[var(--color-primary-background)] shadow-[0_8px_24px_rgba(0,0,0,0.06)]">
         <div className="relative flex flex-col gap-4 px-6 py-10 sm:px-10">
-          <div
-            className="absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(255,255,255,0.2)_0%,_rgba(255,255,255,0)_70%)]"
-            aria-hidden="true"
-          />
-          <h1 className="relative max-w-2xl text-3xl font-semibold tracking-tight sm:text-4xl">
+          <h1 className="text-[42px] font-bold tracking-tight text-[var(--color-text-primary)]">
             Healthcare Prompt Library
           </h1>
-          <p className="relative max-w-3xl text-base text-white/90 sm:text-lg">
-            Get better answers about your health with AI prompts designed by clinicians.
+          <p className="max-w-3xl text-base text-[var(--color-text-secondary)] sm:text-lg">
+            Browse clinician-crafted prompts by category, situation, or audience and copy them when you&apos;re ready to chat.
           </p>
         </div>
       </div>

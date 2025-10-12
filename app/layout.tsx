@@ -3,19 +3,21 @@ import Script from "next/script";
 import "./globals.css";
 
 import { AuthProvider } from "@/components/auth/AuthProvider";
-import { AnnouncementBar } from "@/components/site/AnnouncementBar";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { getPlausibleConfig } from "@/lib/analytics/plausible";
 import { SiteFooter } from "@/components/site/SiteFooter";
 
+const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? "https://mediprompt.app";
+
 export const metadata: Metadata = {
-  title: "Mediprompt — Healthcare Prompt Library & AI Wizard",
+  metadataBase: new URL(siteUrl),
+  title: "Mediprompt — Healthcare Prompt Library",
   description:
-    "Browse clinician-designed healthcare prompt templates or build your own with the Mediprompt AI Wizard. Privacy-first, educational only, zero PHI storage.",
+    "Browse clinician-crafted healthcare AI prompt templates to guide safe, effective conversations without sharing personal data.",
   openGraph: {
-    title: "Mediprompt — Healthcare Prompt Library & AI Wizard",
+    title: "Mediprompt — Healthcare Prompt Library",
     description:
-      "Explore the Healthcare Prompt Library or launch the AI Wizard to craft safer conversations with clinicians.",
+      "Copy trusted healthcare AI prompts to stay prepared for every conversation while protecting your privacy.",
     images: [
       {
         url: "/og-healthcare-library.png",
@@ -39,11 +41,6 @@ export default function RootLayout({
     <html lang="en">
       <body className={bodyClassName}>
         <AuthProvider>
-          <AnnouncementBar
-            message="Join the MediPrompt beta — new healthcare library coming soon."
-            href="/wizard"
-            ctaLabel="Launch the Wizard"
-          />
           <SiteHeader />
           <main className="min-h-screen bg-[var(--color-background)]">
             {children}

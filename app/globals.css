@@ -1,19 +1,43 @@
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Patrick+Hand&display=swap");
 @import "tailwindcss";
 
 :root {
+  /* Brand palette */
+  --ww-blue: #cfe8f8;
+  --ww-pink: #f6c5cc;
+  --ww-yellow: #f9e0a3;
+  --ww-green: #9dbeaa;
+  --ww-lavender: #cabeea;
+  --ww-coral: #f6a18a;
+  --ww-oatmeal: #faf1e6;
+  --ww-text: #2f3437;
+  --ww-muted: #6b7280;
+  --ww-outline: #7c5a3a;
+  --brand-teal: #33b5ac;
+
+  /* Updated palette */
+  --color-primary-background: #ffffff;
+  --color-secondary-background: #f8f9fa;
+  --color-text-primary: #212529;
+  --color-text-secondary: #6c757d;
+  --color-accent: #0056b3;
+  --color-accent-hover: #004494;
+
   /* Typography */
   --font-inter: "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
   --font-geist-mono: "Geist Mono", "SFMono-Regular", Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
+  --font-nunito: "Nunito", "Inter", "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --font-patrick-hand: "Patrick Hand", "Comic Sans MS", "Comic Sans", cursive;
 
   /* Color system */
-  --color-surface: #ffffff;
-  --color-surface-subtle: #f9fafb;
-  --color-background: var(--color-surface);
-  --color-foreground: #1f2937;
-  --color-muted: #6b7280;
-  --color-primary: #0c1c3f;
-  --color-accent: #00a19c;
+  --color-surface: var(--color-primary-background);
+  --color-surface-subtle: var(--color-secondary-background);
+  --color-background: var(--color-secondary-background);
+  --color-foreground: var(--color-text-primary);
+  --color-muted: var(--color-text-secondary);
+  --color-primary: var(--color-accent);
   --color-success: #10b981;
   --color-warning: #f59e0b;
 
@@ -34,20 +58,10 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-surface: #0a0a0a;
-    --color-surface-subtle: #111827;
-    --color-background: var(--color-surface);
-    --color-foreground: #ededed;
-    --color-muted: #9ca3af;
-  }
-}
-
 body {
   background: var(--color-background);
   color: var(--color-foreground);
-  font-family: var(--font-sans), Arial, Helvetica, sans-serif;
+  font-family: var(--font-inter), "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
 
 html {
@@ -58,4 +72,116 @@ html {
   html {
     scroll-behavior: auto;
   }
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-surface: #0a0a0a;
+    --color-surface-subtle: #111827;
+    --color-background: var(--color-surface);
+    --color-foreground: #ededed;
+    --color-muted: #9ca3af;
+  }
+}
+
+.brand-bg-paper {
+  background-color: var(--ww-oatmeal);
+}
+
+.brand-outline {
+  box-shadow: 0 0 0 2px var(--ww-outline) inset;
+  border-radius: 20px;
+}
+
+.brand-btn {
+  background-color: var(--brand-teal);
+  color: #fff;
+  border-radius: 9999px;
+  padding: 0.6rem 1.2rem;
+  border: none;
+  box-shadow: 0 6px 15px rgba(51, 181, 172, 0.24);
+  transition: transform 150ms ease, filter 150ms ease;
+}
+
+.brand-btn:hover {
+  filter: brightness(1.05);
+  transform: translateY(-1px);
+}
+
+.brand-btn:focus-visible {
+  outline: 3px solid var(--ww-blue);
+  outline-offset: 3px;
+}
+
+.brand-link {
+  color: var(--brand-teal);
+}
+
+.brand-muted {
+  color: var(--ww-muted);
+}
+
+.icon {
+  display: inline-block;
+  color: currentColor;
+}
+
+.icon .ol {
+  stroke: currentColor;
+}
+
+.icon .fill {
+  fill: currentColor;
+}
+
+.icon,
+.icon * {
+  vector-effect: non-scaling-stroke;
+}
+
+.brand-divider {
+  background-image: url("data:image/svg+xml,%3Csvg width='600' height='20' viewBox='0 0 600 20' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M0 10 C60 4 120 16 180 10 C240 4 300 16 360 10 C420 4 480 16 540 10 C570 7 600 10 600 10' stroke='%237C5A3A' stroke-width='2.5' stroke-linecap='round'/%3E%3C/svg%3E");
+  background-repeat: repeat-x;
+  background-size: auto 20px;
+  height: 20px;
+}
+
+.brand-focus {
+  outline: 3px solid var(--brand-teal);
+  outline-offset: 3px;
+}
+
+.btn-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-accent);
+  color: var(--color-primary-background);
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.btn-primary:hover {
+  background-color: var(--color-accent-hover);
+  transform: translateY(-1px);
+}
+
+.btn-secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: transparent;
+  color: var(--color-accent);
+  padding: 10px 22px;
+  border: 2px solid var(--color-accent);
+  border-radius: 8px;
+  font-weight: 600;
+  transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+.btn-secondary:hover {
+  background-color: #e7f1ff;
 }

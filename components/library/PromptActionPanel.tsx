@@ -47,7 +47,7 @@ export function PromptActionPanel({ promptText, destinations, promptId, category
         <div
           role="status"
           aria-live="polite"
-          className="absolute left-0 top-full z-20 mt-3 w-80 max-w-[calc(100vw-4rem)] rounded-3xl border border-slate-200 bg-white p-4 shadow-xl"
+          className="absolute left-0 top-full z-20 mt-3 w-80 max-w-[calc(100vw-4rem)] rounded-2xl border border-[var(--color-secondary-background)] bg-[var(--color-primary-background)] p-4 shadow-[0_12px_30px_rgba(0,0,0,0.12)]"
         >
           <div className="flex flex-col gap-2">
             {destinations.map((destination) => (
@@ -57,7 +57,7 @@ export function PromptActionPanel({ promptText, destinations, promptId, category
                 target="_blank"
                 rel="noopener noreferrer"
                 style={{ background: destination.background }}
-                className="flex items-center justify-between gap-3 rounded-2xl px-4 py-3 text-sm font-semibold text-white shadow-md transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+                className="flex items-center justify-between gap-3 rounded-xl px-4 py-3 text-sm font-semibold text-white shadow-[0_10px_20px_rgba(0,0,0,0.18)] transition hover:brightness-110 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
                 aria-label={`Open ${destination.label} in a new tab`}
                 onClick={() => handleDestinationClick(destination)}
               >

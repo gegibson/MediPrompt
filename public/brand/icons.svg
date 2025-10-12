@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 24 24">
+  <defs>
+    <style>
+      .ol { stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+      .nofill { fill: none; }
+      .fill { fill: currentColor; }
+    </style>
+  </defs>
+  <!-- Use with: <svg class="icon" width="24" height="24" style="color: var(--ww-coral)"><use href="#ic-heart-24"/></svg> -->
+
+  <symbol id="ic-heart-24" viewBox="0 0 24 24">
+    <path class="fill ol" d="M12 21s-5.9-4.27-8.1-7.94C1.7 9.98 2.9 6.5 6.1 6.5c1.6 0 3 0.96 3.8 2.36C10.7 7.46 12.1 6.5 13.7 6.5c3.2 0 4.4 3.48 2.2 6.56C18 16.7 12 21 12 21z"/>
+  </symbol>
+
+  <symbol id="ic-cross-24" viewBox="0 0 24 24">
+    <g class="fill ol">
+      <rect x="9" y="4" width="6" height="16" rx="2"/>
+      <rect x="4" y="9" width="16" height="6" rx="2"/>
+    </g>
+  </symbol>
+
+  <symbol id="ic-leaf-24" viewBox="0 0 24 24">
+    <path class="fill ol" d="M19 6c-6.5 0-11 4.5-11 10 0 1.1.2 2.1.6 3 4.3 0 10.4-3.9 11.4-11 0 0-0.5-2-1-2z"/>
+    <path class="nofill ol" d="M8 16c2-1.5 4.5-3 7-4"/>
+  </symbol>
+
+  <symbol id="ic-pill-24" viewBox="0 0 24 24">
+    <rect class="fill ol" x="3" y="8" width="18" height="8" rx="4"/>
+    <path class="nofill ol" d="M12 8v8"/>
+  </symbol>
+
+  <symbol id="ic-bandage-24" viewBox="0 0 24 24">
+    <g transform="rotate(-15 12 12)">
+      <rect class="fill ol" x="4" y="9" width="16" height="6" rx="2.5"/>
+      <rect class="nofill ol" x="9.5" y="10.5" width="5" height="3" rx="1"/>
+      <circle class="nofill ol" cx="8.5" cy="12" r="0.6"/>
+      <circle class="nofill ol" cx="7.5" cy="12" r="0.6"/>
+      <circle class="nofill ol" cx="15.5" cy="12" r="0.6"/>
+      <circle class="nofill ol" cx="16.5" cy="12" r="0.6"/>
+    </g>
+  </symbol>
+
+  <symbol id="ic-syringe-24" viewBox="0 0 24 24">
+    <g class="ol">
+      <rect class="fill" x="6" y="10" width="8" height="4" rx="1"/>
+      <path class="nofill" d="M14 12h3M17 12l4 4M18 11v2"/>
+      <path class="nofill" d="M7 10V8M9 10V8M11 10V8"/>
+      <path class="nofill" d="M7 14v2M9 14v2M11 14v2"/>
+      <path class="nofill" d="M21 16l-3 3"/>
+    </g>
+  </symbol>
+
+  <symbol id="ic-thermometer-24" viewBox="0 0 24 24">
+    <g class="ol">
+      <path class="fill" d="M10 6a2 2 0 0 1 4 0v7a4 4 0 1 1-4 0V6z"/>
+      <path class="nofill" d="M12 7v8"/>
+    </g>
+  </symbol>
+
+  <symbol id="ic-stethoscope-24" viewBox="0 0 24 24">
+    <g class="nofill ol">
+      <path d="M5 5v5a4 4 0 0 0 8 0V5"/>
+      <circle cx="4" cy="5" r="1.5"/>
+      <circle cx="13" cy="5" r="1.5"/>
+      <path d="M13 14a4 4 0 0 0 8 0v-1"/>
+      <circle cx="21" cy="13" r="1.5"/>
+    </g>
+  </symbol>
+
+  <symbol id="ic-check-24" viewBox="0 0 24 24">
+    <path class="nofill ol" d="M4 12l5 5 11-11"/>
+  </symbol>
+
+  <symbol id="ic-ambulance-24" viewBox="0 0 24 24">
+    <g class="ol">
+      <rect class="fill" x="3" y="9" width="15" height="7" rx="1.5"/>
+      <rect class="fill" x="16" y="11" width="5" height="5" rx="1"/>
+      <circle class="fill" cx="7" cy="18" r="1.8"/>
+      <circle class="fill" cx="17" cy="18" r="1.8"/>
+      <rect class="nofill" x="5" y="11" width="3" height="2" rx="0.4"/>
+      <path class="nofill" d="M18.5 9l0-1.5"/>
+      <path class="nofill" d="M5 12h3"/>
+      <rect class="nofill" x="18" y="12" width="1.8" height="1.8" rx="0.3"/>
+    </g>
+  </symbol>
+
+  <symbol id="ic-clipboard-24" viewBox="0 0 24 24">
+    <g class="ol">
+      <rect class="fill" x="5" y="6" width="14" height="15" rx="2"/>
+      <rect class="fill" x="8" y="3" width="8" height="4" rx="1.2"/>
+      <path class="nofill" d="M8 11h8M8 14h6M8 17h5"/>
+    </g>
+  </symbol>
+
+</svg>

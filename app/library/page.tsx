@@ -32,7 +32,6 @@ type Resource = {
   description: string;
   category: string;
   categoryId: string;
-  categoryIcon?: string;
   patientTags: string[];
   situationTags: string[];
   audienceTags: string[];
@@ -233,7 +232,6 @@ export default function HealthcareLibraryPage() {
         description: item.shortDescription,
         category: item.categoryName,
         categoryId: item.categoryId,
-        categoryIcon: item.categoryIcon,
         patientTags: item.patientFacingTags ?? [],
         situationTags: item.situationTags ?? [],
         audienceTags: item.audienceTags ?? [],
@@ -448,7 +446,7 @@ export default function HealthcareLibraryPage() {
             onOpenFilters={() => setIsMobileFiltersOpen(true)}
           />
 
-          <div className="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 xl:grid-cols-3">
             {loading ? (
               <p className="text-sm text-[var(--color-muted)]">Loading prompts…</p>
             ) : loadError ? (
@@ -470,24 +468,23 @@ export default function HealthcareLibraryPage() {
               paginatedResources.map((resource) => (
                 <article
                   key={resource.id}
-                  className="group flex h-full flex-col rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-[var(--color-primary)] hover:shadow-md"
+                  className="group flex h-full flex-col rounded-2xl bg-[var(--color-primary-background)] p-6 shadow-[0_4px_12px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:shadow-[0_10px_20px_rgba(0,0,0,0.12)]"
                 >
-                  <span className="inline-flex items-center gap-2 self-start rounded-full bg-[var(--color-primary)]/10 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-primary)]">
-                    {resource.categoryIcon}
+                  <span className="inline-flex self-start rounded-full bg-[var(--color-secondary-background)] px-3 py-1 text-xs font-semibold uppercase tracking-wide text-[var(--color-text-secondary)]">
                     {resource.category}
                   </span>
-                  <h2 className="mt-4 text-lg font-semibold text-[var(--color-foreground)] group-hover:text-[var(--color-primary)]">
+                  <h2 className="mt-4 text-lg font-semibold text-[var(--color-text-primary)] group-hover:text-[var(--color-accent)]">
                     <Link href={`/library/${resource.id}`}>{resource.title}</Link>
                   </h2>
-                  <p className="mt-2 flex-1 text-sm text-[var(--color-muted)]">
+                  <p className="mt-2 flex-1 text-sm text-[var(--color-text-secondary)]">
                     {resource.description}
                   </p>
-                  <div className="mt-4 flex items-center justify-end text-xs font-medium">
+                  <div className="mt-4 flex items-center justify-end text-xs font-semibold">
                     <Link
                       href={`/library/${resource.id}`}
-                      className="inline-flex items-center gap-1 text-[var(--color-primary)] transition hover:text-[var(--color-accent)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--color-primary)]"
+                      className="inline-flex items-center gap-1 text-[var(--color-accent)] transition hover:text-[var(--color-accent-hover)]"
                     >
-                      View
+                      View prompt
                       <svg
                         className="h-3.5 w-3.5"
                         viewBox="0 0 20 20"

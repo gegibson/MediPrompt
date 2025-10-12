@@ -77,51 +77,47 @@ export const metadata: Metadata = {
 
 export default function TermsPage() {
   return (
-    <div className="min-h-screen bg-gradient-to-b from-sky-50 via-white to-emerald-50 text-slate-900">
-      <main className="mx-auto flex w-full max-w-3xl flex-col gap-10 px-6 py-16 md:px-10">
-        <span className="w-fit rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-emerald-700">
-          Terms of service
-        </span>
-        <div className="grid gap-4">
-          <h1 className="text-3xl font-semibold tracking-tight text-slate-900 md:text-4xl">
+    <div className="bg-[var(--color-secondary-background)] text-[var(--color-text-primary)]">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-col gap-12 px-6 py-16 sm:px-8 lg:px-10">
+        <header className="max-w-3xl space-y-4">
+          <span className="text-xs font-semibold uppercase tracking-[0.3em] text-[var(--color-text-secondary)]">
+            Terms of service
+          </span>
+          <h1 className="text-[32px] font-bold leading-tight sm:text-[42px]">
             Use Mediprompt responsibly.
           </h1>
-          <p className="text-base text-slate-700 md:text-lg">
-            These terms describe your responsibilities, how subscriptions work, and the limits of our service. Please read them carefully before continuing.
+          <p className="text-base text-[var(--color-text-secondary)] sm:text-lg">
+            These terms outline user responsibilities, subscription details, and the limits of our service. Please review them carefully before continuing.
           </p>
-          <p className="text-sm text-slate-500">
-            Last updated: March 20, 2024
-          </p>
-        </div>
+          <p className="text-sm text-[var(--color-text-secondary)]">Last updated: March 20, 2024</p>
+        </header>
 
-        <section className="grid gap-8 rounded-3xl border border-slate-200 bg-white/90 p-8 shadow-sm">
+        <section className="grid gap-8 rounded-3xl bg-[var(--color-primary-background)] p-8 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-10">
           {sections.map((section) => (
-            <article key={section.title} className="grid gap-3">
-              <h2 className="text-xl font-semibold text-slate-900">
+            <article key={section.title} className="space-y-3">
+              <h2 className="text-xl font-semibold text-[var(--color-text-primary)]">
                 {section.title}
               </h2>
               {section.body.map((paragraph) => (
-                <p key={paragraph} className="text-sm text-slate-600 md:text-base">
+                <p key={paragraph} className="text-base text-[var(--color-text-secondary)]">
                   {paragraph}
                 </p>
               ))}
-              {section.bullets && (
-                <ul className="list-outside list-disc space-y-2 pl-5 text-sm text-slate-600 md:text-base">
+              {section.bullets ? (
+                <ul className="list-disc space-y-2 pl-5 text-base text-[var(--color-text-secondary)]">
                   {section.bullets.map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
-              )}
+              ) : null}
             </article>
           ))}
         </section>
 
-        <section className="rounded-3xl border border-emerald-200 bg-emerald-50/80 p-6 text-sm text-emerald-900 md:text-base">
-          <h2 className="text-lg font-semibold text-emerald-900">
-            Need clarification?
-          </h2>
-          <p className="mt-2">
-            Email <a className="font-semibold underline" href="mailto:support@mediprompt.app">support@mediprompt.app</a> and we&apos;ll answer questions about these terms or your subscription.
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Need clarification?</h2>
+          <p className="mt-2 text-base text-[var(--color-text-secondary)]">
+            Email <a className="font-semibold text-[var(--color-accent)]" href="mailto:support@mediprompt.app">support@mediprompt.app</a> and we’ll answer questions about these terms or your subscription.
           </p>
         </section>
       </main>

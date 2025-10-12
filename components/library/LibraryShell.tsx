@@ -8,6 +8,7 @@ import { fetchBodyById, getCategories, getIndex } from "@/lib/library/dataClient
 import type { LibraryCategory, PromptIndexItem } from "@/lib/library/types";
 import { LibraryProvider, useLibraryActions, useLibraryState } from "@/lib/library/store";
 import { searchIndex, type SearchHit } from "@/lib/library/search";
+import { BrandIcon } from "@/components/ui/BrandIcon";
 
 type CopyState = "idle" | "copied" | "error";
 
@@ -231,7 +232,7 @@ function LibrarySection() {
 
   if (loading) {
     return (
-      <div className="space-y-4 rounded-3xl border border-slate-200 bg-white/90 p-6 text-sm text-slate-600">
+      <div className="space-y-4 rounded-[32px] border border-[var(--ww-outline)]/25 bg-white/85 p-6 text-sm text-[var(--ww-muted)] shadow-[0_12px_30px_rgba(124,90,58,0.12)]">
         <p>Loading library…</p>
       </div>
     );
@@ -242,18 +243,24 @@ function LibrarySection() {
       <header className="flex flex-col gap-1.5 md:flex-row md:items-center md:justify-between">
         <div>
           <div className="flex flex-wrap items-center gap-1.5">
-            <h2 className="text-[1.55rem] font-semibold leading-tight text-slate-900 sm:text-[1.6rem] md:text-[1.75rem]">
+            <span className="inline-flex h-10 w-10 items-center justify-center rounded-2xl border border-[var(--ww-outline)]/25 bg-white/85 shadow-[0_6px_16px_rgba(124,90,58,0.12)]">
+              <BrandIcon name="leaf" size={22} style={{ color: "var(--brand-teal)" }} aria-label="Library badge" />
+            </span>
+            <h2
+              className="text-[1.55rem] font-semibold leading-tight text-[var(--ww-text)] sm:text-[1.6rem] md:text-[1.75rem]"
+              style={{ fontFamily: "var(--font-patrick-hand)" }}
+            >
               Healthcare Library
             </h2>
-            <span className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-emerald-700">
-              General templates • educational only
+            <span className="inline-flex items-center rounded-full border border-[var(--brand-teal)]/40 bg-[var(--brand-teal)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.18em] text-[var(--brand-teal)]">
+              Educational only
             </span>
           </div>
-          <p className="text-[12.5px] text-slate-600 sm:text-[13px] md:text-sm">
+          <p className="text-[12.5px] text-[var(--ww-muted)] sm:text-[13px] md:text-sm">
             Browse by category, search, and expand to preview prompts. Copy the full template or jump to the Wizard for customization.
           </p>
         </div>
-        <div className="mt-2 text-sm text-slate-500 md:mt-0" role="status" aria-live="polite">
+        <div className="mt-2 rounded-full border border-[var(--ww-outline)]/20 bg-white/70 px-3 py-1 text-sm text-[var(--ww-muted)] md:mt-0" role="status" aria-live="polite">
           {total} template{total === 1 ? "" : "s"} found
         </div>
       </header>
@@ -294,7 +301,7 @@ function LibrarySection() {
           <button
             type="button"
             onClick={() => actions.setPage(state.page + 1)}
-            className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700"
+            className="rounded-full border border-[var(--ww-outline)]/25 px-4 py-2 text-sm font-medium text-[var(--ww-text)] transition hover:border-[var(--brand-teal)]/40 hover:text-[var(--brand-teal)]"
           >
             Load more
           </button>
@@ -302,23 +309,8 @@ function LibrarySection() {
       )}
 
       {!visibleHits.length && (
-        <div className="rounded-3xl border border-slate-200 bg-white/90 px-6 py-9 text-center text-sm text-slate-600">
-          No prompts match your filters yet. Try adjusting categories or search terms, or build a custom prompt in the Wizard.
-          <div className="mt-3">
-            <Link
-              href="/wizard"
-              className="text-emerald-700 underline"
-              onClick={() =>
-                trackEvent("cta_clicked", {
-                  location: "library-empty",
-                  type: "secondary",
-                  target: "wizard",
-                })
-              }
-            >
-              Open Wizard
-            </Link>
-          </div>
+        <div className="rounded-[32px] border border-[var(--ww-outline)]/25 bg-white/85 px-6 py-9 text-center text-sm text-[var(--ww-muted)] shadow-[0_12px_30px_rgba(124,90,58,0.12)]">
+          No prompts match your filters yet. Try adjusting categories or search terms to explore more results.
         </div>
       )}
     </div>
@@ -370,10 +362,10 @@ function FilterRow({
       <div className="flex w-max items-center gap-1.5 px-1 sm:w-auto sm:flex-wrap sm:px-0">
         <button
           type="button"
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.25 text-[12.5px] font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
+          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.25 text-[12.5px] font-medium transition focus:outline-none focus:ring-2 focus:ring-[var(--brand-teal)]/30 ${
             allActive
-              ? "border-emerald-400 bg-emerald-100/70 text-emerald-800 shadow"
-              : "border-slate-200 bg-white/80 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+              ? "border-[var(--brand-teal)]/50 bg-[var(--brand-teal)]/18 text-[var(--brand-teal)] shadow"
+              : "border-[var(--ww-outline)]/25 bg-white/85 text-[var(--ww-muted)] hover:border-[var(--brand-teal)]/40 hover:text-[var(--brand-teal)]"
           }`}
           aria-pressed={allActive}
           onClick={() => {
@@ -389,7 +381,7 @@ function FilterRow({
         >
           <span className="text-base leading-none">✨</span>
           <span>All</span>
-          <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">
+          <span className="rounded-full bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold text-[var(--ww-muted)]">
             {totalPrompts}
           </span>
         </button>
@@ -401,10 +393,10 @@ function FilterRow({
             <button
               key={category.id}
               type="button"
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.25 text-[12.5px] font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.25 text-[12.5px] font-medium transition focus:outline-none focus:ring-2 focus:ring-[var(--brand-teal)]/30 ${
                 isSelected
-                  ? "border-emerald-400 bg-emerald-100/70 text-emerald-800 shadow"
-                  : "border-slate-200 bg-white/80 text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                  ? "border-[var(--brand-teal)]/50 bg-[var(--brand-teal)]/18 text-[var(--brand-teal)] shadow"
+                  : "border-[var(--ww-outline)]/25 bg-white/85 text-[var(--ww-muted)] hover:border-[var(--brand-teal)]/40 hover:text-[var(--brand-teal)]"
               }`}
               aria-pressed={isSelected}
               onClick={() => toggleCategory(category.id)}
@@ -412,7 +404,7 @@ function FilterRow({
             >
               <span className="text-base leading-none">{category.icon}</span>
               <span>{category.name}</span>
-              <span className="rounded-full bg-white/80 px-1.5 py-0.5 text-[11px] font-semibold text-slate-500">{count}</span>
+              <span className="rounded-full bg-white/90 px-1.5 py-0.5 text-[11px] font-semibold text-[var(--ww-muted)]">{count}</span>
             </button>
           );
         })}
@@ -435,20 +427,20 @@ function SearchBar({ value, onChange }: { value: string; onChange: (val: string)
           autoComplete="off"
           value={value}
           onChange={(event) => onChange(event.target.value)}
-          className="w-full rounded-full border border-slate-200 bg-slate-50 px-4 py-1.75 text-sm text-slate-700 outline-none transition focus:border-emerald-400 focus:bg-white focus:ring-2 focus:ring-emerald-100"
+          className="w-full rounded-full border border-[var(--ww-outline)]/25 bg-white/85 px-4 py-1.75 text-sm text-[var(--ww-text)] outline-none transition focus:border-[var(--brand-teal)] focus:bg-white focus:ring-2 focus:ring-[var(--brand-teal)]/30"
         />
         {value ? (
           <button
             type="button"
             aria-label="Clear search"
-            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+            className="absolute inset-y-0 right-3 flex items-center text-[var(--ww-muted)] hover:text-[var(--brand-teal)]"
             onClick={() => onChange("")}
           >
             ✕
           </button>
         ) : (
-          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center text-slate-400" aria-hidden="true">
-            🔍
+          <span className="pointer-events-none absolute inset-y-0 right-4 flex items-center" aria-hidden="true">
+            <BrandIcon name="stethoscope" size={18} style={{ color: "var(--ww-muted)" }} />
           </span>
         )}
       </div>
@@ -458,15 +450,15 @@ function SearchBar({ value, onChange }: { value: string; onChange: (val: string)
 
 function SortControl({ value, onChange }: { value: "featured" | "newest" | "title"; onChange: (sort: "featured" | "newest" | "title") => void }) {
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <label htmlFor="library-sort" className="text-slate-600">
+    <div className="flex items-center gap-2 text-sm text-[var(--ww-muted)]">
+      <label htmlFor="library-sort">
         Sort by
       </label>
       <select
         id="library-sort"
         value={value}
         onChange={(event) => onChange(event.target.value as "featured" | "newest" | "title")}
-        className="rounded-full border border-slate-200 px-3 py-1.5 text-sm text-slate-700 focus:border-emerald-300 focus:outline-none"
+        className="rounded-full border border-[var(--ww-outline)]/25 bg-white/85 px-3 py-1.5 text-sm text-[var(--ww-text)] focus:border-[var(--brand-teal)] focus:outline-none"
       >
         <option value="featured">Featured</option>
         <option value="newest">Newest</option>
@@ -545,38 +537,38 @@ function PromptCard({
 
   return (
     <article
-      className="flex h-full flex-col justify-between rounded-3xl border border-slate-200 bg-white/95 p-5 shadow-sm transition-all duration-200 hover:-translate-y-1 hover:border-emerald-200 hover:shadow-lg motion-reduce:transform-none motion-reduce:transition-none"
+      className="flex h-full flex-col justify-between rounded-[28px] border border-[var(--ww-outline)]/25 bg-white/90 p-5 shadow-[0_12px_30px_rgba(124,90,58,0.12)] transition-all duration-200 hover:-translate-y-1 hover:border-[var(--brand-teal)]/40 hover:shadow-[0_18px_45px_rgba(124,90,58,0.18)] motion-reduce:transform-none motion-reduce:transition-none"
       role="listitem"
     >
       <div className="mb-3 grid gap-1.75">
-        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-slate-600">
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-0.5 text-slate-700">
+        <div className="flex flex-wrap items-center gap-1.5 text-[10px] font-semibold uppercase tracking-[0.16em] text-[var(--ww-muted)]">
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--ww-outline)]/20 bg-white/85 px-2.5 py-0.5 text-[var(--ww-text)]">
             <span>{category?.icon ?? "📌"}</span>
             <span>{category?.name ?? "Prompt"}</span>
           </span>
-          <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-100 px-2.5 py-0.5 text-emerald-700">
-            General Template
+          <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-teal)]/40 bg-[var(--brand-teal)]/15 px-2.5 py-0.5 text-[var(--brand-teal)]">
+            General template
           </span>
         </div>
         <div className="grid gap-1.5">
-          <h3 className="text-[1.05rem] font-semibold leading-snug text-slate-900" title={hit.item.title}>
+          <h3 className="text-[1.05rem] font-semibold leading-snug text-[var(--ww-text)]" title={hit.item.title}>
             {highlightedTitle}
           </h3>
-          <p className="text-[12px] leading-snug text-slate-600" title={hit.item.shortDescription}>
+          <p className="text-[12px] leading-snug text-[var(--ww-muted)]" title={hit.item.shortDescription}>
             {highlightedDescription}
           </p>
         </div>
       </div>
 
-      <div className="relative flex-1 rounded-2xl border border-slate-200 bg-slate-50/70 p-3 text-[12px] leading-relaxed text-slate-700">
-        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-500">Prompt preview</p>
+      <div className="relative flex-1 rounded-2xl border border-[var(--ww-outline)]/20 bg-[var(--ww-blue)]/20 p-3 text-[12px] leading-relaxed text-[var(--ww-text)]">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-[var(--ww-muted)]">Prompt preview</p>
         <PreviewBody isExpanded={isExpanded} bodyState={bodyState} ariaId={ariaId} />
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-slate-500">
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3 text-[10px] font-medium uppercase tracking-[0.16em] text-[var(--ww-muted)]">
         <div className="flex flex-wrap items-center gap-1">
           {hit.item.tags?.map((tag) => (
-            <span key={tag} className="inline-flex items-center rounded-full bg-slate-100 px-2 py-0.5 lowercase text-slate-600">
+            <span key={tag} className="inline-flex items-center rounded-full border border-[var(--ww-outline)]/20 bg-white/85 px-2 py-0.5 lowercase text-[var(--ww-muted)]">
               #{tag}
             </span>
           ))}
@@ -584,12 +576,12 @@ function PromptCard({
         <div className="flex flex-wrap items-center gap-1.5 text-[11px] normal-case">
           <button
             type="button"
-            className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium transition focus:outline-none focus:ring-2 focus:ring-emerald-200 ${
+            className={`inline-flex items-center justify-center rounded-full border px-3 py-1.5 text-[11px] font-medium transition focus:outline-none focus:ring-2 focus:ring-[var(--brand-teal)]/30 ${
               copyState === "copied"
-                ? "border-emerald-400 bg-emerald-100/70 text-emerald-700"
+                ? "border-[var(--brand-teal)]/50 bg-[var(--brand-teal)]/18 text-[var(--brand-teal)]"
                 : copyState === "error"
                   ? "border-rose-300 bg-rose-50 text-rose-600"
-                  : "border-slate-200 bg-white text-slate-600 hover:border-emerald-300 hover:text-emerald-700"
+                  : "border-[var(--ww-outline)]/20 bg-white text-[var(--ww-text)] hover:border-[var(--brand-teal)]/40 hover:text-[var(--brand-teal)]"
             }`}
             onClick={onCopy}
             aria-live="polite"
@@ -598,7 +590,7 @@ function PromptCard({
           </button>
           <button
             type="button"
-            className="inline-flex items-center justify-center rounded-full border border-slate-200 px-3 py-1.5 text-[11px] font-medium text-slate-600 transition hover:border-emerald-300 hover:text-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+            className="inline-flex items-center justify-center rounded-full border border-[var(--ww-outline)]/20 px-3 py-1.5 text-[11px] font-medium text-[var(--ww-text)] transition hover:border-[var(--brand-teal)]/40 hover:text-[var(--brand-teal)] focus:outline-none focus:ring-2 focus:ring-[var(--brand-teal)]/30"
             aria-expanded={isExpanded}
             aria-controls={ariaId}
             onClick={onToggle}
@@ -615,9 +607,9 @@ function PreviewBody({ isExpanded, bodyState, ariaId }: { isExpanded: boolean; b
   if (bodyState.status === "loading") {
     return (
       <div className="mt-2 space-y-2">
-        <div className="h-3 rounded bg-slate-200/80" />
-        <div className="h-3 rounded bg-slate-200/70" />
-        <div className="h-3 rounded bg-slate-200/60" />
+        <div className="h-3 rounded bg-[var(--ww-blue)]/40" />
+        <div className="h-3 rounded bg-[var(--ww-blue)]/35" />
+        <div className="h-3 rounded bg-[var(--ww-blue)]/30" />
       </div>
     );
   }
@@ -639,7 +631,7 @@ function PreviewBody({ isExpanded, bodyState, ariaId }: { isExpanded: boolean; b
         {body}
       </p>
       {!isExpanded && (
-        <div className="pointer-events-none absolute inset-x-3.5 bottom-3.5 h-7 bg-gradient-to-t from-slate-50/90 to-slate-50/0" aria-hidden="true" />
+        <div className="pointer-events-none absolute inset-x-3.5 bottom-3.5 h-7 bg-gradient-to-t from-[var(--ww-blue)]/30 to-[var(--ww-blue)]/0" aria-hidden="true" />
       )}
     </>
   );
@@ -655,7 +647,7 @@ function renderHighlighted(text: string, ranges?: { start: number; end: number }
       parts.push(text.slice(cursor, range.start));
     }
     parts.push(
-      <mark key={`hl-${index}`} className="rounded bg-emerald-100 px-0.5 text-emerald-800">
+      <mark key={`hl-${index}`} className="rounded bg-[var(--brand-teal)]/20 px-0.5 text-[var(--brand-teal)]">
         {text.slice(range.start, Math.min(range.end, text.length))}
       </mark>,
     );

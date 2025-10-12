@@ -1,6 +1,8 @@
 'use client';
 
 import { useCallback, useEffect, useState } from "react";
+import { BrandIcon } from "@/components/ui/BrandIcon";
+
 export default function UserProfilePage({ user, profile, subscription }) {
   const metadata = user?.user_metadata ?? {};
   const displayName = [
@@ -214,51 +216,59 @@ export default function UserProfilePage({ user, profile, subscription }) {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-slate-50 via-white to-emerald-50 text-slate-900">
-      <main className="mx-auto flex w-full max-w-4xl flex-col gap-8 px-6 py-16 md:px-10">
-        <h1 className="text-3xl font-semibold tracking-tight text-slate-900">My Profile</h1>
+    <div className="min-h-screen bg-[var(--color-secondary-background)] text-[var(--color-text-primary)]">
+      <main className="mx-auto flex w-full max-w-[1100px] flex-col gap-10 px-6 py-16 sm:px-8 lg:px-10">
+        <div className="flex items-center gap-3">
+          <span className="inline-flex h-12 w-12 items-center justify-center rounded-xl bg-[var(--color-primary-background)] shadow-[0_6px_16px_rgba(0,0,0,0.08)]">
+            <BrandIcon name="leaf" size={24} style={{ color: "var(--color-accent)" }} aria-hidden="true" />
+          </span>
+          <div>
+            <h1 className="text-[32px] font-bold leading-tight">My Profile</h1>
+            <p className="text-sm text-[var(--color-text-secondary)]">Manage your account details and subscription status.</p>
+          </div>
+        </div>
 
-        <section className="rounded-3xl border border-slate-200 bg-white/90 p-6 shadow-sm">
-          <h2 className="text-lg font-semibold text-slate-900">Account Information</h2>
-          <p className="mt-1 text-sm text-slate-600">
-            Review the basic details associated with your Mediprompt account.
+        <section className="rounded-3xl bg-[var(--color-primary-background)] p-6 shadow-[0_8px_24px_rgba(0,0,0,0.08)] sm:p-8">
+          <h2 className="text-lg font-semibold text-[var(--color-text-primary)]">Account Information</h2>
+          <p className="mt-1 text-sm text-[var(--color-text-secondary)]">
+            Review the details associated with your MediPrompt account.
           </p>
 
           <dl className="mt-6 grid gap-6 sm:grid-cols-2">
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
                 Name
               </dt>
-              <dd className="mt-1 text-base font-medium text-slate-900">
+              <dd className="mt-1 text-base font-medium">
                 {sanitizedName}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
                 Email
               </dt>
-              <dd className="mt-1 text-base font-medium text-slate-900">
+              <dd className="mt-1 text-base font-medium">
                 {email}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
                 Plan
               </dt>
-              <dd className="mt-1 text-base font-medium text-slate-900">
+              <dd className="mt-1 text-base font-medium">
                 {planLabel}
               </dd>
             </div>
 
             <div>
-              <dt className="text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <dt className="text-xs font-semibold uppercase tracking-[0.25em] text-[var(--color-text-secondary)]">
                 Subscription status
               </dt>
-              <dd className="mt-1 text-base font-medium text-slate-900">
+              <dd className="mt-1 text-base font-medium">
                 {subscriptionStatus}
-                <span className="mt-1 block text-sm font-normal text-slate-500">
+                <span className="mt-1 block text-sm font-normal text-[var(--color-text-secondary)]">
                   {statusHelperText}
                 </span>
               </dd>
@@ -273,7 +283,7 @@ export default function UserProfilePage({ user, profile, subscription }) {
                     type="button"
                     onClick={handleResumeSubscription}
                     disabled={resumeStatus === "loading"}
-                    className="rounded-full border border-emerald-500 px-5 py-2 text-sm font-semibold text-emerald-700 shadow-sm transition hover:bg-emerald-50 disabled:cursor-not-allowed disabled:border-emerald-200 disabled:text-emerald-300"
+                    className="btn-secondary text-sm font-semibold uppercase tracking-[0.25em]"
                   >
                     {resumeStatus === "loading" ? "Resuming..." : "Resume subscription"}
                   </button>
@@ -282,7 +292,7 @@ export default function UserProfilePage({ user, profile, subscription }) {
                     type="button"
                     onClick={handleCancelSubscription}
                     disabled={cancelStatus === "loading"}
-                    className="rounded-full border border-rose-400 px-5 py-2 text-sm font-semibold text-rose-600 shadow-sm transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:border-rose-200 disabled:text-rose-300"
+                    className="inline-flex items-center justify-center rounded-full border-2 border-rose-500 px-5 py-2 text-sm font-semibold text-rose-600 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {cancelStatus === "loading" ? "Scheduling cancellation..." : "Cancel subscription"}
                   </button>
@@ -293,14 +303,14 @@ export default function UserProfilePage({ user, profile, subscription }) {
                 type="button"
                 onClick={handleUpgrade}
                 disabled={upgradeStatus === "loading"}
-                className="rounded-full bg-emerald-600 px-5 py-2 text-sm font-semibold text-white shadow-sm shadow-emerald-600/30 transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300"
+                className="btn-primary"
               >
                 {upgradeStatus === "loading" ? "Preparing checkout..." : "Upgrade to Unlimited"}
               </button>
             )}
           </div>
 
-          <p className="mt-3 text-sm text-slate-600">
+          <p className="mt-3 text-sm text-[var(--color-text-secondary)]">
             {isSubscriber
               ? cancelAtPeriodEnd
                 ? "Your plan stays active until the end of the current billing period. Resume any time before it ends."
@@ -309,7 +319,7 @@ export default function UserProfilePage({ user, profile, subscription }) {
           </p>
 
           {successMessage ? (
-            <p className="mt-3 text-sm text-emerald-700">{successMessage}</p>
+            <p className="mt-3 text-sm text-[var(--color-accent)]">{successMessage}</p>
           ) : null}
 
           {upgradeError && !isSubscriber ? (

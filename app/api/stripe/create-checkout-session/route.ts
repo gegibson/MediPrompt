@@ -131,7 +131,7 @@ export async function POST(request: Request) {
   const returnUrls = buildReturnUrls(origin, requestedReturnPath);
 
   const defaultSuccessUrl = (() => {
-    const success = new URL("/wizard", origin);
+    const success = new URL("/profile", origin);
     success.searchParams.set("checkout", "success");
     success.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
     return success.toString();
@@ -146,7 +146,7 @@ export async function POST(request: Request) {
     : stripeCheckoutCancelUrl
       ? stripeCheckoutCancelUrl
       : (() => {
-          const cancel = new URL("/wizard", origin);
+          const cancel = new URL("/profile", origin);
           cancel.searchParams.set("checkout", "cancelled");
           return cancel.toString();
         })();

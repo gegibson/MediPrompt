@@ -10,7 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   ]);
   const now = new Date().toISOString();
 
-  const staticRoutes = ["/", "/wizard", "/library", "/library/categories", "/disclaimer", "/privacy", "/terms"];
+  const staticRoutes = ["/", "/library", "/library/categories", "/disclaimer", "/privacy", "/terms"];
 
   const categoryRoutes = categories.map((category) => ({
     url: buildCanonicalPath(`/library?category=${encodeURIComponent(category.id)}`),
