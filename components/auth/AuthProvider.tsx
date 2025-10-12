@@ -360,14 +360,20 @@ function AuthModal({
 
 export function AuthProvider({
   children,
+  initialSession = null,
+  initialUser = null,
 }: {
   children: React.ReactNode;
+  initialSession?: Session | null;
+  initialUser?: User | null;
 }) {
   const supabaseConfigured = isBrowserSupabaseConfigured();
   const [supabase, setSupabase] = useState<SupabaseBrowserClient | null>(null);
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(() => supabaseConfigured);
+  const [session, setSession] = useState<Session | null>(initialSession);
+  const [user, setUser] = useState<User | null>(initialUser);
+  const [loading, setLoading] = useState(
+    () => supabaseConfigured && !initialSession,
+  );
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   useEffect(() => {
